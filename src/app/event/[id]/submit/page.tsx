@@ -35,6 +35,16 @@ export default function SubmitWin() {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
   }, [eventId]);
 
+  function resetToPhoto() {
+    setStep("photo");
+    setTiles([]);
+    setPhotoUrl("");
+    setKongs(0);
+    setValidation(null);
+    setError("");
+    setLoading(false);
+  }
+
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -48,18 +58,20 @@ export default function SubmitWin() {
       if (data.error && !data.tiles) {
         setPhotoUrl(data.photoUrl || "");
         setError(data.error);
-        setStep("manual");
+        // Stay on photo step so they can try again
+        setLoading(false);
       } else {
         setTiles(data.tiles);
         setPhotoUrl(data.photoUrl);
         setKongs(data.kongs || 0);
         setValidation(data.validation);
         setStep("confirm");
+        setLoading(false);
       }
     } catch {
       setError("Upload failed. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function submitWin() {
@@ -90,99 +102,216 @@ export default function SubmitWin() {
     setLoading(false);
   }
 
-  if (!event) return <div className="text-center py-20">Loading...</div>;
+  if (!event) return <div className="text-center py-20 text-gray-400"><div className="text-4xl mb-3">🀄</div>Loading...</div>;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-center">🀄 Submit Win</h1>
-      {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>}
-
-      {step === "photo" && (
-        <div className="bg-white rounded-xl p-5 shadow-sm space-y-4 text-center">
-          <p className="text-lg">Take a photo of your winning hand</p>
-          <label className="block w-full py-4 bg-red-600 text-white rounded-lg font-bold cursor-pointer">
-            📸 Open Camera
-            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
-          </label>
-          <button onClick={() => setStep("manual")} className="text-sm text-gray-500 underline">Or enter tiles manually</button>
-          {loading && <p className="text-gray-500">Analyzing tiles...</p>}
-        </div>
-      )}
-
-      {step === "confirm" && (
-        <div className="bg-white rounded-xl p-5 shadow-sm space-y-4">
-          <p className="font-bold">Detected tiles:</p>
-          <HandDisplay tiles={tiles} />
-          {validation && !validation.valid && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{validation.reason}</div>}
-          {validation?.valid && <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-sm">Valid winning hand!</div>}
-          <div className="flex gap-2">
-            <button onClick={() => setStep("details")} disabled={!validation?.valid} className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold disabled:bg-gray-300">Correct</button>
-            <button onClick={() => setStep("manual")} className="flex-1 py-3 bg-gray-200 rounded-lg font-bold">Fix Tiles</button>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="mahjong-header -mx-4 px-6 pt-6 pb-5 text-white rounded-b-3xl shadow-lg">
+        <div className="flex items-center gap-3">
+          <button onClick={() => step === "photo" ? router.push(`/event/${eventId}`) : resetToPhoto()} className="text-white/70 hover:text-white text-sm">
+            ← {step === "photo" ? "Back" : "Start Over"}
+          </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-lg font-bold">Submit Win</h1>
           </div>
+          <div className="w-12"></div>
+        </div>
+        {/* Step indicator */}
+        <div className="flex gap-1.5 mt-3 justify-center">
+          {["Photo", "Confirm", "Details", "Done"].map((label, i) => {
+            const stepOrder = ["photo", "confirm", "details", "result"];
+            const currentIdx = step === "manual" ? 1 : stepOrder.indexOf(step);
+            return (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${i <= currentIdx ? "bg-white" : "bg-white/30"}`} />
+                <span className={`text-[10px] ${i <= currentIdx ? "text-white" : "text-white/40"}`}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="mahjong-card p-3 border-l-4 border-red-500">
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
-      {step === "manual" && (
-        <div className="bg-white rounded-xl p-5 shadow-sm">
-          <TilePicker initialTiles={tiles} onConfirm={(t) => { setTiles(t); setStep("details"); }} />
+      {/* Step 1: Photo */}
+      {step === "photo" && (
+        <div className="mahjong-card p-5 space-y-4 text-center">
+          <div className="text-4xl mb-1">📸</div>
+          <p className="font-bold text-lg">Take a photo of your winning hand</p>
+          <p className="text-sm text-gray-500">Lay out all tiles face-up and snap a clear photo</p>
+
+          <label className={`block w-full py-4 ${loading ? "bg-gray-400" : "bg-[#c41e3a] hover:bg-[#a01830]"} text-white rounded-xl font-bold cursor-pointer transition-colors shadow-md`}>
+            {loading ? "Analyzing tiles..." : "Open Camera"}
+            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" disabled={loading} />
+          </label>
+
+          {loading && (
+            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#c41e3a] rounded-full animate-spin"></div>
+              AI is reading your tiles...
+            </div>
+          )}
+
+          <div className="relative flex items-center gap-3 py-2">
+            <div className="h-px flex-1 bg-gray-200"></div>
+            <span className="text-xs text-gray-400">or</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+
+          <button
+            onClick={() => { setError(""); setStep("manual"); }}
+            className="w-full py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Enter tiles manually
+          </button>
         </div>
       )}
 
-      {step === "details" && (
-        <div className="bg-white rounded-xl p-5 shadow-sm space-y-4">
+      {/* Step 2: Confirm tiles from AI */}
+      {step === "confirm" && (
+        <div className="mahjong-card p-5 space-y-4">
+          <p className="font-bold text-sm text-gray-500 uppercase tracking-wider">AI Detected Tiles:</p>
           <HandDisplay tiles={tiles} />
+
+          {validation && !validation.valid && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">
+              <p className="font-bold mb-1">Not a valid winning hand</p>
+              <p>{validation.reason}</p>
+            </div>
+          )}
+          {validation?.valid && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm font-medium">
+              Valid winning hand!
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setStep("details")}
+              disabled={!validation?.valid}
+              className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm disabled:bg-gray-300 transition-colors"
+            >
+              Looks correct
+            </button>
+            <button
+              onClick={() => setStep("manual")}
+              className="py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-sm transition-colors"
+            >
+              Fix tiles
+            </button>
+          </div>
+          <button onClick={resetToPhoto} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
+            Retake photo
+          </button>
+        </div>
+      )}
+
+      {/* Step 2b: Manual tile picker */}
+      {step === "manual" && (
+        <div className="space-y-3">
+          <div className="mahjong-card p-5">
+            <TilePicker initialTiles={tiles} onConfirm={(t) => { setTiles(t); setStep("details"); }} />
+          </div>
+          <button onClick={resetToPhoto} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
+            ← Back to camera
+          </button>
+        </div>
+      )}
+
+      {/* Step 3: Win details */}
+      {step === "details" && (
+        <div className="mahjong-card p-5 space-y-4">
+          <HandDisplay tiles={tiles} />
+
           <div>
-            <label className="block text-sm font-medium mb-1">Who won?</label>
-            <select value={winnerId} onChange={(e) => setWinnerId(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+            <label className="block text-sm font-medium mb-1.5">Who won?</label>
+            <select value={winnerId} onChange={(e) => setWinnerId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c41e3a]/30 bg-gray-50/50">
               <option value="">Select player</option>
               {event.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Win type</label>
-            <div className="flex gap-2">
-              <button onClick={() => setWinType("zimo")} className={`flex-1 py-2 rounded-lg font-bold ${winType === "zimo" ? "bg-red-600 text-white" : "bg-gray-100"}`}>自摸 (Self-draw)</button>
-              <button onClick={() => setWinType("dianpao")} className={`flex-1 py-2 rounded-lg font-bold ${winType === "dianpao" ? "bg-red-600 text-white" : "bg-gray-100"}`}>点炮 (Discard)</button>
+            <label className="block text-sm font-medium mb-1.5">Win type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setWinType("zimo")} className={`py-2.5 rounded-xl font-bold text-sm transition-colors ${winType === "zimo" ? "bg-[#c41e3a] text-white" : "bg-gray-100 hover:bg-gray-200"}`}>
+                自摸 Self-draw
+              </button>
+              <button onClick={() => setWinType("dianpao")} className={`py-2.5 rounded-xl font-bold text-sm transition-colors ${winType === "dianpao" ? "bg-[#c41e3a] text-white" : "bg-gray-100 hover:bg-gray-200"}`}>
+                点炮 Discard
+              </button>
             </div>
           </div>
+
           {winType === "dianpao" && (
             <div>
-              <label className="block text-sm font-medium mb-1">Who discarded?</label>
-              <select value={discarderId} onChange={(e) => setDiscarderId(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+              <label className="block text-sm font-medium mb-1.5">Who discarded?</label>
+              <select value={discarderId} onChange={(e) => setDiscarderId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c41e3a]/30 bg-gray-50/50">
                 <option value="">Select player</option>
                 {event.players.filter((p) => p.id !== winnerId).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
           )}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isLastTile} onChange={(e) => setIsLastTile(e.target.checked)} /> 海底捞月 (Last tile)</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isKongWin} onChange={(e) => setIsKongWin(e.target.checked)} /> 杠上开花 (Win off kong)</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isRobbingKong} onChange={(e) => setIsRobbingKong(e.target.checked)} /> 杠上炮 (Robbing a kong)</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isDealerFirstDraw} onChange={(e) => setIsDealerFirstDraw(e.target.checked)} /> 天胡 (Heavenly hand)</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isFirstDraw} onChange={(e) => setIsFirstDraw(e.target.checked)} /> 地胡 (Earthly hand)</label>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Bonus (check if applicable)</label>
+            <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isLastTile} onChange={(e) => setIsLastTile(e.target.checked)} /> 海底捞月 Last tile</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isKongWin} onChange={(e) => setIsKongWin(e.target.checked)} /> 杠上开花 Win off kong</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isRobbingKong} onChange={(e) => setIsRobbingKong(e.target.checked)} /> 杠上炮 Robbing a kong</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isDealerFirstDraw} onChange={(e) => setIsDealerFirstDraw(e.target.checked)} /> 天胡 Heavenly hand</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isFirstDraw} onChange={(e) => setIsFirstDraw(e.target.checked)} /> 地胡 Earthly hand</label>
+            </div>
           </div>
-          <button onClick={submitWin} disabled={!winnerId || loading || (winType === "dianpao" && !discarderId)} className="w-full py-3 bg-green-600 text-white rounded-lg font-bold disabled:bg-gray-300">
+
+          <button
+            onClick={submitWin}
+            disabled={!winnerId || loading || (winType === "dianpao" && !discarderId)}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
+          >
             {loading ? "Submitting..." : "Submit Win"}
+          </button>
+
+          <button onClick={() => setStep("confirm")} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
+            ← Back to tiles
           </button>
         </div>
       )}
 
+      {/* Step 4: Result */}
       {step === "result" && result && (
-        <div className="bg-white rounded-xl p-5 shadow-sm space-y-4 text-center">
-          <p className="text-2xl font-bold text-green-600">Win Recorded!</p>
-          <div className="space-y-1">
+        <div className="mahjong-card p-5 space-y-4 text-center">
+          <div className="text-4xl">🎉</div>
+          <p className="text-2xl font-bold text-emerald-600">Win Recorded!</p>
+
+          <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-left">
             {result.fan.map((f, i) => (
               <div key={i} className="flex justify-between text-sm">
-                <span>{f.name} ({f.nameEn})</span>
-                <span className="font-bold">+{f.value} fan</span>
+                <span className="text-gray-600">{f.name} <span className="text-gray-400">({f.nameEn})</span></span>
+                <span className="font-bold text-[#c41e3a]">+{f.value} fan</span>
               </div>
             ))}
           </div>
-          <div className="border-t pt-3">
-            <p className="text-lg">Total: <span className="font-bold">{result.totalFan} fan</span></p>
-            <p className="text-2xl font-bold text-red-600">{result.score} points</p>
+
+          <div className="border-t pt-4">
+            <p className="text-sm text-gray-500">Total Fan</p>
+            <p className="text-3xl font-bold">{result.totalFan} 番</p>
+            <p className="text-sm text-gray-500 mt-2">Points Scored</p>
+            <p className="text-4xl font-bold text-[#c41e3a]">{result.score}</p>
           </div>
-          <button onClick={() => router.push(`/event/${eventId}`)} className="w-full py-3 bg-gray-800 text-white rounded-lg font-bold">Back to Leaderboard</button>
+
+          <button
+            onClick={() => router.push(`/event/${eventId}`)}
+            className="w-full py-3.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold text-sm transition-colors"
+          >
+            Back to Leaderboard
+          </button>
         </div>
       )}
     </div>
