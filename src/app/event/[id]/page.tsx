@@ -59,6 +59,27 @@ export default function EventDashboard() {
         <p className="text-red-200 text-xs mt-1 tracking-widest">CODE: {event.id}</p>
       </div>
 
+      {/* Getting started hint for host */}
+      {isHost && event.players.length === 0 && (
+        <div className="mahjong-card p-4 border-l-4 border-[#d4a017]">
+          <p className="font-bold text-sm mb-2">Getting started:</p>
+          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+            <li>Add player names below in Host Controls</li>
+            <li>Share the code <span className="font-mono font-bold text-gray-800">{event.id}</span> or show QR to players</li>
+            <li>When someone wins, tap the red button to record it</li>
+          </ol>
+        </div>
+      )}
+
+      {/* Player instructions (non-host, no games yet) */}
+      {!isHost && event.rounds.length === 0 && (
+        <div className="mahjong-card p-4 border-l-4 border-[#c41e3a]">
+          <p className="text-sm text-gray-600">
+            <span className="font-bold text-gray-800">Welcome!</span> When you win a hand, tap <span className="font-bold text-[#c41e3a]">我胡了!</span> to take a photo of your tiles. The app will calculate your score automatically.
+          </p>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="flex gap-3">
         <Link

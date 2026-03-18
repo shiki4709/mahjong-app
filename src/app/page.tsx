@@ -37,6 +37,29 @@ export default function Home() {
         <p className="text-red-200 text-sm mt-1 tracking-wide">Sichuan 血战到底</p>
       </div>
 
+      {/* How it works */}
+      <div className="mahjong-card p-5">
+        <h3 className="font-bold text-sm text-gray-500 uppercase tracking-wider mb-3">How it works</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex gap-3 items-start">
+            <span className="bg-[#c41e3a] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</span>
+            <p className="text-gray-600"><span className="font-medium text-gray-800">Host creates an event</span> and adds all player names</p>
+          </div>
+          <div className="flex gap-3 items-start">
+            <span className="bg-[#c41e3a] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</span>
+            <p className="text-gray-600"><span className="font-medium text-gray-800">Share the event code or QR</span> with your players</p>
+          </div>
+          <div className="flex gap-3 items-start">
+            <span className="bg-[#c41e3a] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</span>
+            <p className="text-gray-600"><span className="font-medium text-gray-800">When someone wins, snap a photo</span> — AI identifies the tiles and calculates the score</p>
+          </div>
+          <div className="flex gap-3 items-start">
+            <span className="bg-[#c41e3a] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">4</span>
+            <p className="text-gray-600"><span className="font-medium text-gray-800">Live leaderboard</span> tracks points, wins, and biggest hands</p>
+          </div>
+        </div>
+      </div>
+
       {/* Create event */}
       <div className="mahjong-card p-5 space-y-4">
         <h3 className="font-bold text-lg flex items-center gap-2">
