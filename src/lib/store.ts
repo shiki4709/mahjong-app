@@ -26,3 +26,13 @@ export async function saveEvent(event: MahjongEvent): Promise<void> {
 export async function deleteEvent(id: string): Promise<void> {
   await getRedis().del(`${EVENT_PREFIX}${id}`);
 }
+
+const TABLE_CODE_PREFIX = "tablecode:";
+
+export async function mapTableCodeToEvent(tableCode: string, eventId: string): Promise<void> {
+  await getRedis().set(`${TABLE_CODE_PREFIX}${tableCode}`, eventId);
+}
+
+export async function getEventIdByTableCode(tableCode: string): Promise<string | null> {
+  return getRedis().get<string>(`${TABLE_CODE_PREFIX}${tableCode}`);
+}

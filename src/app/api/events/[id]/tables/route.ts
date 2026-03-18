@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEvent, saveEvent } from "@/lib/store";
+import { getEvent, saveEvent, mapTableCodeToEvent } from "@/lib/store";
 import { Table } from "@/lib/types";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +20,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     for (const playerId of table.playerIds) {
       const player = event.players.find((p) => p.id === playerId);
       if (player) player.tableId = table.id;
+    }
+    // Map table code to event ID for lookup
+    if (table.code) {
+      await mapTableCodeToEvent(table.code, id);
     }
   }
 

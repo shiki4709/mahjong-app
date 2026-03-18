@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function recognizeTiles(imageBase64: string, mediaType: "image/jpeg" | "image/png" | "image/webp"): Promise<RecognitionResult> {
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [
       {
@@ -98,7 +98,7 @@ Write a personality profile in this JSON format:
 Return ONLY the JSON, no other text.`;
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 512,
     messages: [{ role: "user", content: prompt }],
   });

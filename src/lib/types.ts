@@ -50,6 +50,7 @@ export interface Player {
 export interface Table {
   id: string;
   name: string;
+  code: string; // unique join code for this table
   playerIds: string[];
 }
 

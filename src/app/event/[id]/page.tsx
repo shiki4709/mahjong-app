@@ -16,14 +16,14 @@ export default function EventDashboard() {
   const isHost = !!pin;
 
   const [event, setEvent] = useState<MahjongEvent | null>(null);
-  const [showQR, setShowQR] = useState(false);
-  const [newPlayer, setNewPlayer] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState<string | null>(null); // table code to show QR for
 
-  // Restore selected player from localStorage
+  // Player identity from localStorage
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+
   useEffect(() => {
     const saved = localStorage.getItem(`mahjong-player-${eventId}`);
-    if (saved) setSelectedPlayer(saved);
+    if (saved) setMyPlayerId(saved);
   }, [eventId]);
 
   const fetchEvent = useCallback(async () => {
@@ -38,22 +38,6 @@ export default function EventDashboard() {
     return () => clearInterval(interval);
   }, [fetchEvent]);
 
-  async function addPlayer() {
-    if (!newPlayer.trim()) return;
-    await fetch(`/api/events/${eventId}/players`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newPlayer.trim() }),
-    });
-    setNewPlayer("");
-    fetchEvent();
-  }
-
-  function selectPlayer(playerId: string) {
-    setSelectedPlayer(playerId);
-    localStorage.setItem(`mahjong-player-${eventId}`, playerId);
-  }
-
   if (!event) return (
     <div className="text-center py-20 text-gray-400">
       <div className="text-4xl mb-3">🀄</div>
@@ -62,35 +46,8 @@ export default function EventDashboard() {
   );
 
   const ledgers = computeLedger(event);
-  const selectedPlayerName = event.players.find(p => p.id === selectedPlayer)?.name;
-
-  // --- PLAYER: needs to pick who they are first ---
-  if (!isHost && !selectedPlayer && event.players.length > 0) {
-    return (
-      <div className="space-y-5">
-        <div className="mahjong-header -mx-4 px-6 pt-8 pb-6 text-center text-white rounded-b-3xl shadow-lg">
-          <h1 className="text-2xl font-bold">🀄 {event.name}</h1>
-          <p className="text-red-200 text-xs mt-1 tracking-widest">CODE: {event.id}</p>
-        </div>
-
-        <div className="mahjong-card p-5 space-y-4">
-          <h2 className="font-bold text-lg text-center">Who are you?</h2>
-          <p className="text-sm text-gray-500 text-center">Select your name to get started</p>
-          <div className="space-y-2">
-            {event.players.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => selectPlayer(p.id)}
-                className="w-full py-3.5 bg-gray-50 hover:bg-[#c41e3a] hover:text-white border border-gray-200 hover:border-[#c41e3a] rounded-xl font-medium text-sm transition-all"
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const myPlayer = event.players.find(p => p.id === myPlayerId);
+  const myTable = event.tables.find(t => t.id === myPlayer?.tableId);
 
   return (
     <div className="space-y-5">
@@ -100,32 +57,21 @@ export default function EventDashboard() {
           {isHost && (
             <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Host</span>
           )}
-          {selectedPlayerName && !isHost && (
-            <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{selectedPlayerName}</span>
+          {myPlayer && !isHost && (
+            <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{myPlayer.name} {myTable ? `· ${myTable.name}` : ""}</span>
           )}
         </div>
         <h1 className="text-2xl font-bold">🀄 {event.name}</h1>
-        <p className="text-red-200 text-xs mt-1 tracking-widest">CODE: {event.id}</p>
+        {myTable && !isHost && (
+          <p className="text-red-200 text-xs mt-1">{myTable.name}</p>
+        )}
       </div>
 
-      {/* Host: Getting started guide (only when no players yet) */}
-      {isHost && event.players.length === 0 && (
-        <div className="mahjong-card p-4 border-l-4 border-[#d4a017]">
-          <p className="font-bold text-sm mb-2">Getting started:</p>
-          <ol className="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
-            <li>Add player names below</li>
-            <li>Share the code <span className="font-mono font-bold text-gray-800">{event.id}</span> or show QR to players</li>
-            <li>Players open this app and join with the code</li>
-            <li>When someone wins, anyone can tap the red button to record it</li>
-          </ol>
-        </div>
-      )}
-
-      {/* Player: welcome (no games yet) */}
-      {!isHost && event.rounds.length === 0 && selectedPlayer && (
+      {/* Player welcome */}
+      {!isHost && myPlayer && event.rounds.length === 0 && (
         <div className="mahjong-card p-4 border-l-4 border-[#c41e3a]">
           <p className="text-sm text-gray-600">
-            <span className="font-bold text-gray-800">Hi {selectedPlayerName}!</span> When you win a hand, tap <span className="font-bold text-[#c41e3a]">我胡了!</span> to snap a photo of your tiles. The app calculates your score and updates the leaderboard.
+            <span className="font-bold text-gray-800">Hi {myPlayer.name}!</span> When you win a hand, tap <span className="font-bold text-[#c41e3a]">我胡了!</span> below to snap a photo. The app calculates your score automatically.
           </p>
         </div>
       )}
@@ -160,31 +106,32 @@ export default function EventDashboard() {
           <div className="text-center py-8 text-gray-400">
             <div className="text-3xl mb-2">🀄</div>
             <p className="text-sm">No games played yet</p>
-            {isHost && <p className="text-xs mt-1">Add players below to get started</p>}
           </div>
         )}
       </div>
 
-      {/* Players list (visible to everyone) */}
-      {event.players.length > 0 && !isHost && (
+      {/* Table view for players */}
+      {!isHost && myTable && (
         <div className="mahjong-card p-4">
-          <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">Players ({event.players.length})</h2>
+          <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">Your Table: {myTable.name}</h2>
           <div className="flex flex-wrap gap-2">
-            {event.players.map((p) => (
-              <span
-                key={p.id}
-                className={`text-sm px-3 py-1.5 rounded-full ${p.id === selectedPlayer ? "bg-[#c41e3a] text-white font-bold" : "bg-gray-100 text-gray-600"}`}
-              >
-                {p.name}
+            {myTable.playerIds.map((pid) => {
+              const p = event.players.find(pl => pl.id === pid);
+              return p ? (
+                <span
+                  key={pid}
+                  className={`text-sm px-3 py-1.5 rounded-full ${pid === myPlayerId ? "bg-[#c41e3a] text-white font-bold" : "bg-gray-100 text-gray-600"}`}
+                >
+                  {p.name}
+                </span>
+              ) : null;
+            })}
+            {myTable.playerIds.length < 4 && (
+              <span className="text-sm px-3 py-1.5 rounded-full bg-gray-50 text-gray-300 border border-dashed border-gray-200">
+                Waiting... ({4 - myTable.playerIds.length} spots)
               </span>
-            ))}
+            )}
           </div>
-          <button
-            onClick={() => { setSelectedPlayer(null); localStorage.removeItem(`mahjong-player-${eventId}`); }}
-            className="text-xs text-gray-400 mt-3 underline"
-          >
-            Switch player
-          </button>
         </div>
       )}
 
@@ -197,63 +144,48 @@ export default function EventDashboard() {
             <div className="h-px flex-1 bg-gray-200"></div>
           </div>
 
-          {/* Add player */}
-          <div className="mahjong-card p-4 space-y-3">
+          {/* Tables with codes */}
+          <div className="mahjong-card p-4 space-y-4">
             <h3 className="font-bold text-sm flex items-center gap-2">
-              <span className="w-1 h-4 bg-emerald-600 rounded-full inline-block"></span>
-              Add Players
+              <span className="w-1 h-4 bg-amber-500 rounded-full inline-block"></span>
+              Table Codes
             </h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Player name"
-                value={newPlayer}
-                onChange={(e) => setNewPlayer(e.target.value)}
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-gray-50/50"
-                onKeyDown={(e) => e.key === "Enter" && addPlayer()}
-              />
-              <button
-                onClick={addPlayer}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors"
-              >
-                Add
-              </button>
-            </div>
+            <p className="text-xs text-gray-500">Share these codes with players so they can join the right table</p>
 
-            {event.players.length > 0 && (
-              <div className="bg-gray-50 rounded-xl p-3 space-y-1">
-                {event.players.map((p, i) => (
-                  <div key={p.id} className="flex justify-between items-center text-sm py-1.5 px-2">
-                    <span className="font-medium">{i + 1}. {p.name}</span>
-                    <span className="text-gray-400 text-xs font-mono">{p.id}</span>
+            {event.tables.map((table) => (
+              <div key={table.id} className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-sm">{table.name}</h4>
+                  <span className="text-xs text-gray-400">{table.playerIds.length}/4 players</span>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
+                  <p className="text-3xl font-mono font-bold tracking-[0.3em]">{table.code}</p>
+                </div>
+                {/* Players at this table */}
+                {table.playerIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {table.playerIds.map((pid) => {
+                      const p = event.players.find(pl => pl.id === pid);
+                      return p ? (
+                        <span key={pid} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-full">{p.name}</span>
+                      ) : null;
+                    })}
                   </div>
-                ))}
+                )}
+                <button
+                  onClick={() => setShowQR(showQR === table.code ? null : table.code!)}
+                  className="text-xs text-gray-500 underline"
+                >
+                  {showQR === table.code ? "Hide QR" : "Show QR"}
+                </button>
+                {showQR === table.code && (
+                  <EventQRCode
+                    url={typeof window !== "undefined" ? `${window.location.origin}` : ""}
+                    eventName={`${table.name} — Code: ${table.code}`}
+                  />
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Share event */}
-          <div className="mahjong-card p-4 space-y-3">
-            <h3 className="font-bold text-sm flex items-center gap-2">
-              <span className="w-1 h-4 bg-blue-600 rounded-full inline-block"></span>
-              Share with Players
-            </h3>
-            <p className="text-sm text-gray-500">Players join by opening this app and entering the code:</p>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-mono font-bold tracking-widest">{event.id}</p>
-            </div>
-            <button
-              onClick={() => setShowQR(!showQR)}
-              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              {showQR ? "Hide" : "Show"} QR Code
-            </button>
-            {showQR && (
-              <EventQRCode
-                url={typeof window !== "undefined" ? `${window.location.origin}/event/${eventId}` : ""}
-                eventName={event.name}
-              />
-            )}
+            ))}
           </div>
 
           {/* Manage & End */}
