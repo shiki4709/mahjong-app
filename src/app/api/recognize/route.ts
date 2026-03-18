@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { recognizeTiles } from "@/lib/ai";
 import { validateHand } from "@/lib/hand-validator";
+
+const useMemoryBlob = !process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN === "your-blob-token";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -11,7 +12,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No photo provided" }, { status: 400 });
   }
 
-  const blob = await put(`hands/${Date.now()}-${file.name}`, file, { access: "public" });
+  let photoUrl = "";
+
+  if (useMemoryBlob) {
+    // Local dev: skip blob upload, use a placeholder URL
+    photoUrl = `local://hands/${Date.now()}-${file.name}`;
+  } else {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(`hands/${Date.now()}-${file.name}`, file, { access: "public" });
+    photoUrl = blob.url;
+  }
 
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
@@ -23,13 +33,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ...result,
-      photoUrl: blob.url,
+      photoUrl,
       validation,
     });
   } catch (error) {
     return NextResponse.json({
       error: "Failed to recognize tiles. Please try again or use manual input.",
-      photoUrl: blob.url,
+      photoUrl,
     }, { status: 422 });
   }
 }
