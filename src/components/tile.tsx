@@ -12,10 +12,9 @@ const SUIT_COLORS: Record<string, { text: string; bg: string; border: string }> 
   tong: { text: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
 };
 
-// Chinese numeral characters for wan tiles
 const WAN_CHARS = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
-export function TileDisplay({ tile, size = "md", onClick, showEnglish = false }: {
+export function TileDisplay({ tile, size = "md", onClick }: {
   tile: TileType;
   size?: "sm" | "md" | "lg";
   onClick?: () => void;
@@ -38,20 +37,19 @@ export function TileDisplay({ tile, size = "md", onClick, showEnglish = false }:
   );
 }
 
-/* ─── Tile face renderers ─── */
-
 function TileFace({ suit, number, size }: { suit: TileType["suit"]; number: number; size: "sm" | "md" | "lg" }) {
+  const svgSize = size === "sm" ? 30 : size === "md" ? 38 : 46;
   switch (suit) {
     case "wan":
       return <WanFace number={number} size={size} />;
     case "tong":
-      return <TongFace number={number} size={size} />;
+      return <TongSVG number={number} size={svgSize} />;
     case "tiao":
-      return <TiaoFace number={number} size={size} />;
+      return <TiaoSVG number={number} size={svgSize} />;
   }
 }
 
-/* ─── Wan (Characters): Chinese numeral + 万 ─── */
+/* ═══ Wan (Characters): Chinese numeral + 万 ═══ */
 function WanFace({ number, size }: { number: number; size: string }) {
   const charSize = size === "sm" ? "text-sm" : size === "md" ? "text-base" : "text-lg";
   const labelSize = size === "sm" ? "text-[8px]" : "text-[10px]";
@@ -63,108 +61,197 @@ function WanFace({ number, size }: { number: number; size: string }) {
   );
 }
 
-/* ─── Tong (Dots): Colored circles in pattern ─── */
-function TongFace({ number, size }: { number: number; size: string }) {
-  const dotSize = size === "sm" ? 5 : size === "md" ? 6 : 7;
-  const gap = size === "sm" ? 1 : 1.5;
-  return (
-    <div className="flex flex-col items-center justify-center" style={{ gap: `${gap}px` }}>
-      <DotPattern count={number} dotSize={dotSize} gap={gap} />
-    </div>
-  );
-}
+/* ═══ Tong (Dots/Circles): Concentric ring pattern ═══ */
+// Authentic tong tiles show concentric circles (筒 = tube cross-section)
+// with alternating colored rings: blue outer, white gap, red/green inner
 
-function DotPattern({ count, dotSize, gap }: { count: number; dotSize: number; gap: number }) {
-  // Arrange dots in recognizable mahjong patterns
-  const layouts: Record<number, number[][]> = {
-    1: [[1]],
-    2: [[1], [1]],
-    3: [[1], [1], [1]],
-    4: [[1, 1], [1, 1]],
-    5: [[1, 1], [0, 1], [1, 1]],
-    6: [[1, 1], [1, 1], [1, 1]],
-    7: [[1, 1], [1, 1, 1], [1, 1]],
-    8: [[1, 1, 1], [1, 1], [1, 1, 1]],
-    9: [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-  };
+// Positions for each count, in a 3x3 grid coordinate space
+// Each position is [col, row] where 0,0 is top-left and 2,2 is bottom-right
+const TONG_POSITIONS: Record<number, [number, number][]> = {
+  1: [[1, 1]],
+  2: [[1, 0], [1, 2]],
+  3: [[1, 0], [1, 1], [1, 2]],
+  4: [[0, 0], [2, 0], [0, 2], [2, 2]],
+  5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+  6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]],
+  7: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [2, 2]],
+  8: [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+  9: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+};
 
-  const rows = layouts[count] || [[1]];
+function TongSVG({ number, size }: { number: number; size: number }) {
+  const positions = TONG_POSITIONS[number];
+  const padding = 3;
+  const usable = size - padding * 2;
 
-  return (
-    <>
-      {rows.map((row, ri) => (
-        <div key={ri} className="flex items-center justify-center" style={{ gap: `${gap}px` }}>
-          {row.map((filled, ci) => (
-            <div
-              key={ci}
-              style={{ width: dotSize, height: dotSize }}
-              className={`rounded-full ${
-                filled ? "bg-blue-600 shadow-[inset_0_-1px_0_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.3)]" : "opacity-0"
-              }`}
-            />
-          ))}
-        </div>
-      ))}
-    </>
-  );
-}
-
-/* ─── Tiao (Bamboo): Vertical sticks ─── */
-function TiaoFace({ number, size }: { number: number; size: string }) {
+  // For 1 tong, make it bigger
   if (number === 1) {
-    // 1 tiao is traditionally a bird/special — show a single thick bamboo
-    const h = size === "sm" ? 20 : size === "md" ? 24 : 28;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = usable * 0.35;
     return (
-      <div className="flex flex-col items-center justify-center">
-        <BambooStick height={h} highlight />
-      </div>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <TongCircle cx={cx} cy={cy} r={r} />
+      </svg>
     );
   }
 
-  const stickH = size === "sm" ? 10 : size === "md" ? 12 : 14;
-  const gap = size === "sm" ? 1 : 1.5;
+  // Determine grid bounds
+  const cols = positions.reduce((max, [c]) => Math.max(max, c), 0);
+  const rows = positions.reduce((max, [, r]) => Math.max(max, r), 0);
 
-  // Arrange bamboo sticks in rows
-  const layouts: Record<number, number[]> = {
-    2: [2],
-    3: [3],
-    4: [2, 2],
-    5: [3, 2],
-    6: [3, 3],
-    7: [4, 3],
-    8: [4, 4],
-    9: [3, 3, 3],
-  };
-
-  const rows = layouts[number] || [number];
+  const cellW = cols > 0 ? usable / (cols + 1) : usable;
+  const cellH = rows > 0 ? usable / (rows + 1) : usable;
+  const r = Math.min(cellW, cellH) * 0.38;
 
   return (
-    <div className="flex flex-col items-center justify-center" style={{ gap: `${gap}px` }}>
-      {rows.map((count, ri) => (
-        <div key={ri} className="flex items-end justify-center" style={{ gap: `${gap + 0.5}px` }}>
-          {Array.from({ length: count }).map((_, ci) => (
-            <BambooStick key={ci} height={stickH} />
-          ))}
-        </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {positions.map(([c, row], i) => {
+        const cx = padding + (cols > 0 ? c * (usable / cols) : usable / 2);
+        const cy = padding + (rows > 0 ? row * (usable / rows) : usable / 2);
+        return <TongCircle key={i} cx={cx} cy={cy} r={r} />;
+      })}
+    </svg>
+  );
+}
+
+// A single tong circle: concentric rings (blue outer, white, green inner, red center)
+function TongCircle({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill="#1e40af" />
+      <circle cx={cx} cy={cy} r={r * 0.78} fill="#f0ece4" />
+      <circle cx={cx} cy={cy} r={r * 0.6} fill="#15803d" />
+      <circle cx={cx} cy={cy} r={r * 0.35} fill="#f0ece4" />
+      <circle cx={cx} cy={cy} r={r * 0.18} fill="#dc2626" />
+    </g>
+  );
+}
+
+/* ═══ Tiao (Bamboo): Segmented sticks with nodes ═══ */
+// Authentic bamboo tiles show segmented sticks with alternating colors
+// 1 tiao is traditionally a bird
+
+// Row layouts: each row has N sticks
+const TIAO_LAYOUTS: Record<number, number[]> = {
+  1: [1],
+  2: [2],
+  3: [3],
+  4: [2, 2],
+  5: [3, 2],
+  6: [3, 3],
+  7: [3, 4],
+  8: [4, 4],
+  9: [3, 3, 3],
+};
+
+function TiaoSVG({ number, size }: { number: number; size: number }) {
+  if (number === 1) {
+    return <TiaoBird size={size} />;
+  }
+
+  const rows = TIAO_LAYOUTS[number];
+  const padding = 2;
+  const usable = size - padding * 2;
+  const rowH = usable / rows.length;
+  const maxCols = Math.max(...rows);
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {rows.map((count, ri) => {
+        const y = padding + ri * rowH;
+        const stickW = Math.min(usable / maxCols, 6);
+        const totalW = count * stickW + (count - 1) * stickW * 0.4;
+        const startX = (size - totalW) / 2;
+
+        return Array.from({ length: count }).map((_, ci) => {
+          const x = startX + ci * (stickW + stickW * 0.4);
+          // Alternate green and blue sticks
+          const isGreen = (ri + ci) % 2 === 0;
+          return (
+            <BambooSegmented
+              key={`${ri}-${ci}`}
+              x={x}
+              y={y + 1}
+              w={stickW}
+              h={rowH - 2}
+              green={isGreen}
+            />
+          );
+        });
+      })}
+    </svg>
+  );
+}
+
+// A single bamboo stick with 3 segments and node rings
+function BambooSegmented({ x, y, w, h, green }: {
+  x: number; y: number; w: number; h: number; green: boolean;
+}) {
+  const color1 = green ? "#15803d" : "#1e40af";
+  const color2 = green ? "#22c55e" : "#3b82f6";
+  const segH = h / 3;
+  const nodeH = Math.max(1, h * 0.04);
+  const r = w * 0.2;
+
+  return (
+    <g>
+      {/* 3 segments with alternating shades */}
+      {[0, 1, 2].map((si) => (
+        <rect
+          key={si}
+          x={x}
+          y={y + si * segH}
+          width={w}
+          height={segH}
+          rx={r}
+          fill={si % 2 === 0 ? color1 : color2}
+        />
       ))}
-    </div>
+      {/* Node rings between segments */}
+      {[1, 2].map((ni) => (
+        <rect
+          key={`n${ni}`}
+          x={x - w * 0.1}
+          y={y + ni * segH - nodeH / 2}
+          width={w * 1.2}
+          height={nodeH}
+          rx={nodeH / 2}
+          fill="#fbbf24"
+        />
+      ))}
+    </g>
   );
 }
 
-function BambooStick({ height, highlight }: { height: number; highlight?: boolean }) {
+// 1-tiao bird: simplified stylized bird (traditional design)
+function TiaoBird({ size }: { size: number }) {
+  const cx = size / 2;
+  const s = size * 0.35;
   return (
-    <div
-      style={{ height, width: highlight ? 6 : 3 }}
-      className={`rounded-full ${
-        highlight
-          ? "bg-gradient-to-b from-emerald-400 to-emerald-700"
-          : "bg-gradient-to-b from-emerald-400 to-emerald-600"
-      }`}
-    />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Body */}
+      <ellipse cx={cx} cy={cx + s * 0.1} rx={s * 0.5} ry={s * 0.65} fill="#15803d" />
+      {/* Head */}
+      <circle cx={cx} cy={cx - s * 0.55} r={s * 0.3} fill="#15803d" />
+      {/* Eye */}
+      <circle cx={cx + s * 0.08} cy={cx - s * 0.6} r={s * 0.06} fill="white" />
+      {/* Beak */}
+      <polygon
+        points={`${cx + s * 0.28},${cx - s * 0.55} ${cx + s * 0.5},${cx - s * 0.5} ${cx + s * 0.28},${cx - s * 0.45}`}
+        fill="#dc2626"
+      />
+      {/* Wing */}
+      <ellipse cx={cx - s * 0.15} cy={cx + s * 0.05} rx={s * 0.35} ry={s * 0.25} fill="#22c55e" transform={`rotate(-15 ${cx} ${cx})`} />
+      {/* Tail feathers */}
+      <line x1={cx - s * 0.1} y1={cx + s * 0.7} x2={cx - s * 0.35} y2={cx + s * 1.0} stroke="#15803d" strokeWidth={s * 0.08} strokeLinecap="round" />
+      <line x1={cx + s * 0.1} y1={cx + s * 0.7} x2={cx + s * 0.15} y2={cx + s * 1.0} stroke="#22c55e" strokeWidth={s * 0.08} strokeLinecap="round" />
+      <line x1={cx} y1={cx + s * 0.7} x2={cx - s * 0.1} y2={cx + s * 1.05} stroke="#16a34a" strokeWidth={s * 0.08} strokeLinecap="round" />
+    </svg>
   );
 }
 
-// Colored dot/badge to indicate suit without Chinese
+// Colored dot/badge to indicate suit
 export function SuitBadge({ suit }: { suit: string }) {
   const labels: Record<string, string> = {
     wan: "Characters",
