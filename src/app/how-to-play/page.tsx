@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { TileDisplay, SuitBadge } from "@/components/tile";
 import { Tile } from "@/lib/types";
 
@@ -12,8 +13,23 @@ function t(suit: Tile["suit"], number: number): Tile {
   return { suit, number };
 }
 
-export default function HowToPlay() {
+export default function HowToPlayPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-gray-400">Loading...</div>}>
+      <HowToPlay />
+    </Suspense>
+  );
+}
+
+function HowToPlay() {
   const [step, setStep] = useState(0);
+  const searchParams = useSearchParams();
+  const fromEvent = searchParams.get("from");
+  const playerParam = searchParams.get("player");
+
+  const backUrl = fromEvent
+    ? `/event/${fromEvent}${playerParam ? `?player=${playerParam}` : ""}`
+    : "/";
 
   const next = useCallback(() => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)), []);
   const prev = useCallback(() => setStep((s) => Math.max(s - 1, 0)), []);
@@ -22,8 +38,8 @@ export default function HowToPlay() {
     <div className="space-y-5">
       {/* Header */}
       <div className="mahjong-header -mx-4 px-6 pt-10 pb-6 text-white rounded-b-3xl shadow-lg">
-        <Link href="/" className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-4 transition-colors">
-          ← Back
+        <Link href={backUrl} className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-4 transition-colors">
+          ← {fromEvent ? "Back to Game" : "Back"}
         </Link>
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">How to Play</h1>
@@ -82,10 +98,10 @@ export default function HowToPlay() {
           </button>
         ) : (
           <Link
-            href="/"
+            href={backUrl}
             className="flex-1 py-3.5 bg-[#c41e3a] hover:bg-[#a01830] text-white rounded-2xl font-bold text-sm shadow-md shadow-red-900/20 transition-colors text-center"
           >
-            Let&apos;s Play!
+            {fromEvent ? "Back to Game" : "Let\u0027s Play!"}
           </Link>
         )}
       </div>
