@@ -135,27 +135,29 @@ export function calculateFan(tiles: Tile[], context: WinContext): FanBreakdown[]
   }
 
   if (isFlush(tiles)) {
-    fan.push({ name: "清一色", nameEn: "Flush", value: 2 });
+    fan.push({ name: "清一色", nameEn: "Flush", value: 4 });
   }
 
   if (isSevenPairs(tiles)) {
-    fan.push({ name: "七对", nameEn: "Seven Pairs", value: 2 });
+    fan.push({ name: "七对", nameEn: "Seven Pairs", value: 4 });
   }
 
   const allTripletsDecomp = decompositions.find(isAllTripletsDecomposition);
   if (!isSevenPairs(tiles) && allTripletsDecomp) {
-    fan.push({ name: "对对胡", nameEn: "All Triplets", value: 1 });
+    fan.push({ name: "对对胡", nameEn: "All Triplets", value: 2 });
 
     const pairCount = allTripletsDecomp.filter((s) => s.type === "pair").length;
     const setCount = allTripletsDecomp.filter((s) => s.type === "triplet" || s.type === "kong").length;
     if (pairCount === 1 && setCount === 4) {
+      // 金钩钓 is a higher tier of 对对胡, total should be ~4 fan
+      // Already counted 2 for 对对胡, add 2 more
       fan.push({ name: "金钩钓", nameEn: "Golden Hook", value: 2 });
     }
   }
 
   const terminalDecomp = decompositions.find(hasTerminalsInEverySetDecomposition);
   if (terminalDecomp) {
-    fan.push({ name: "带幺九", nameEn: "All Terminals", value: 1 });
+    fan.push({ name: "带幺九", nameEn: "All Terminals", value: 4 });
   }
 
   const genCount = countGen(tiles);
@@ -168,11 +170,11 @@ export function calculateFan(tiles: Tile[], context: WinContext): FanBreakdown[]
   }
 
   if (context.isDealerFirstDraw) {
-    fan.push({ name: "天胡", nameEn: "Heavenly Hand", value: 4 });
+    fan.push({ name: "天胡", nameEn: "Heavenly Hand", value: 6 });
   }
 
   if (context.isFirstDraw && !context.isDealerFirstDraw) {
-    fan.push({ name: "地胡", nameEn: "Earthly Hand", value: 4 });
+    fan.push({ name: "地胡", nameEn: "Earthly Hand", value: 6 });
   }
 
   return fan;

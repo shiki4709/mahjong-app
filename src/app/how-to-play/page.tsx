@@ -567,7 +567,7 @@ function StepWinTypes() {
       <div className="mahjong-card p-4 space-y-2 border-l-4 border-[#c41e3a]">
         <div className="flex items-center gap-2">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Alternative: Seven Pairs</p>
-          <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">2 fan</span>
+          <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">4 fan</span>
         </div>
         <p className="text-xs text-gray-500">Instead of sets, collect 7 pairs — worth bonus points!</p>
         <div className="flex flex-wrap gap-0.5 justify-center">
@@ -600,10 +600,10 @@ function StepWinTypes() {
         <p className="text-xs text-gray-500">These earn extra points on top of your win:</p>
         <div className="space-y-2">
           {[
-            { name: "清一色", en: "Flush", fan: 2, desc: "All tiles same suit", visual: "🟥🟥🟥🟥🟥" },
-            { name: "对对胡", en: "All Triplets", fan: 1, desc: "All sets are 3-of-a-kind, no sequences", visual: "🔴🔴🔴" },
-            { name: "带幺九", en: "Terminals", fan: 1, desc: "Every set has a 1 or 9", visual: "1️⃣9️⃣" },
-            { name: "金钩钓", en: "Golden Hook", fan: 2, desc: "4 triplets, waiting on the pair", visual: "🪝" },
+            { name: "清一色", en: "Flush", fan: 4, desc: "All tiles same suit", visual: "🟥🟥🟥🟥🟥" },
+            { name: "对对胡", en: "All Triplets", fan: 2, desc: "All sets are 3-of-a-kind, no sequences", visual: "🔴🔴🔴" },
+            { name: "带幺九", en: "Terminals", fan: 4, desc: "Every set has a 1 or 9", visual: "1️⃣9️⃣" },
+            { name: "金钩钓", en: "Golden Hook", fan: 4, desc: "4 triplets, waiting on the pair (includes 对对胡)", visual: "🪝" },
           ].map((h) => (
             <div key={h.name} className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
               <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">+{h.fan}</span>
@@ -630,11 +630,11 @@ function StepScoring() {
         <p className="text-sm text-gray-500 mt-1">Each bonus (fan) doubles your score</p>
       </div>
 
-      {/* Important rule */}
-      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-        <p className="text-xs text-red-700">
-          <span className="font-bold">Rule:</span> You need at least <span className="font-bold">1 fan</span> to win.
-          A basic discard win with no bonuses = 0 fan = can&apos;t win! Self-draw (自摸) gives you 1 fan.
+      {/* Basic win note */}
+      <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+        <p className="text-xs text-green-700">
+          <span className="font-bold">平胡 (Basic Win):</span> Even with 0 bonus fan, you can still win!
+          You get 1× the base score. Bonuses multiply from there.
         </p>
       </div>
 
@@ -657,11 +657,13 @@ function StepScoring() {
           <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg font-bold text-sm">{Math.pow(2, fanCount)}×</span>
         </div>
         <p className="text-[10px] text-gray-400">
-          {fanCount === 0 && "0 fan — can't win! Need at least 1 fan."}
-          {fanCount === 1 && "1 fan — basic self-draw win (2× base)"}
-          {fanCount === 2 && "2 fan — e.g. flush or seven pairs (4× base)"}
-          {fanCount === 3 && "3 fan — e.g. flush + self-draw (8× base)"}
-          {fanCount >= 4 && `${fanCount} fan — ${Math.pow(2, fanCount)}× base! Big hand!`}
+          {fanCount === 0 && "0 fan — basic win (平胡), 1× base"}
+          {fanCount === 1 && "1 fan — e.g. self-draw (2× base)"}
+          {fanCount === 2 && "2 fan — e.g. all triplets (4× base)"}
+          {fanCount === 3 && "3 fan — e.g. all triplets + self-draw (8× base)"}
+          {fanCount === 4 && "4 fan — e.g. flush or seven pairs (16× base)"}
+          {fanCount === 5 && "5 fan — e.g. flush + self-draw (32× base)"}
+          {fanCount >= 6 && `${fanCount} fan — ${Math.pow(2, fanCount)}× base! Huge hand!`}
         </p>
       </div>
 
@@ -671,7 +673,7 @@ function StepScoring() {
         <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">清一色 Flush</span>
-            <span className="font-bold text-[#c41e3a]">+2 fan</span>
+            <span className="font-bold text-[#c41e3a]">+4 fan</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">自摸 Self-draw</span>
@@ -679,12 +681,12 @@ function StepScoring() {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">对对胡 All Triplets</span>
-            <span className="font-bold text-[#c41e3a]">+1 fan</span>
+            <span className="font-bold text-[#c41e3a]">+2 fan</span>
           </div>
           <div className="h-px bg-gray-200" />
           <div className="flex justify-between text-xs font-bold">
             <span className="text-gray-800">Total</span>
-            <span className="text-[#c41e3a]">4 fan → 16× base!</span>
+            <span className="text-[#c41e3a]">7 fan → 128× base!</span>
           </div>
         </div>
       </div>

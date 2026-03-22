@@ -31,9 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const fan = calculateFan(tiles, context);
   const totalFan = fan.reduce((sum, f) => sum + f.value, 0);
 
-  if (totalFan < 1) {
-    return NextResponse.json({ error: "This hand has 0 fan — in Sichuan mahjong you need at least 1 fan to win. Did you self-draw (自摸)? That adds 1 fan.", valid: false }, { status: 400 });
-  }
+  // 平胡 (basic win with 0 fan) is allowed in standard Sichuan mahjong
 
   const alreadyWon = round.wins.map((w) => w.winnerId);
   const remainingPlayers = round.handsPlayed.filter((pid) => pid !== winnerId && !alreadyWon.includes(pid));
