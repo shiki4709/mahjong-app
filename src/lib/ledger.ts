@@ -3,6 +3,17 @@ import { MahjongEvent, PointLedger } from "./types";
 export function computeLedger(event: MahjongEvent, tableId?: string): PointLedger[] {
   const ledgers = new Map<string, PointLedger>();
 
+  // Build a name lookup for all known players (active + departed)
+  const nameMap = new Map<string, string>();
+  for (const p of event.players) {
+    nameMap.set(p.id, p.name);
+  }
+  for (const dp of event.departedPlayers || []) {
+    if (!nameMap.has(dp.id)) {
+      nameMap.set(dp.id, dp.name);
+    }
+  }
+
   function ensurePlayer(id: string, name: string) {
     if (!ledgers.has(id)) {
       ledgers.set(id, {
@@ -19,20 +30,10 @@ export function computeLedger(event: MahjongEvent, tableId?: string): PointLedge
     }
   }
 
-  // Filter players by table if specified
-  const players = tableId
-    ? event.players.filter((p) => p.tableId === tableId)
-    : event.players;
-
-  for (const player of players) {
-    ensurePlayer(player.id, player.name);
-  }
-
-  // Departed players — scores stay on the leaderboard
-  for (const dp of event.departedPlayers || []) {
-    if (!tableId) {
-      ensurePlayer(dp.id, `${dp.name} (left)`);
-    }
+  // Resolve a player's display name — check active, departed, fallback to "Unknown"
+  function resolveName(id: string, departed: boolean): string {
+    const name = nameMap.get(id) || "Unknown";
+    return departed ? `${name} (left)` : name;
   }
 
   // Filter rounds by table if specified
@@ -40,8 +41,48 @@ export function computeLedger(event: MahjongEvent, tableId?: string): PointLedge
     ? event.rounds.filter((r) => r.tableId === tableId)
     : event.rounds;
 
+  // Collect all player IDs who participated in these rounds
+  const roundPlayerIds = new Set<string>();
   for (const round of rounds) {
-    // Track games played: each player in handsPlayed participated in this round
+    for (const pid of round.handsPlayed) roundPlayerIds.add(pid);
+    for (const win of round.wins) {
+      roundPlayerIds.add(win.winnerId);
+      for (const payerId of win.paidBy) roundPlayerIds.add(payerId);
+    }
+    for (const kong of round.kongEvents) {
+      roundPlayerIds.add(kong.playerId);
+      for (const payerId of kong.paidBy) roundPlayerIds.add(payerId);
+    }
+  }
+
+  // Add active players (filtered by table if specified)
+  const activePlayers = tableId
+    ? event.players.filter((p) => p.tableId === tableId)
+    : event.players;
+
+  for (const player of activePlayers) {
+    ensurePlayer(player.id, player.name);
+  }
+
+  // Add any player who participated in these rounds but isn't currently
+  // at this table (departed or switched tables) — use their real name
+  const activeIds = new Set(activePlayers.map((p) => p.id));
+  for (const pid of roundPlayerIds) {
+    if (!activeIds.has(pid)) {
+      const isDeparted = !event.players.some((p) => p.id === pid);
+      ensurePlayer(pid, resolveName(pid, isDeparted));
+    }
+  }
+
+  // If no table filter, also add departed players who may not have rounds
+  if (!tableId) {
+    for (const dp of event.departedPlayers || []) {
+      ensurePlayer(dp.id, `${dp.name} (left)`);
+    }
+  }
+
+  // Compute scores from rounds
+  for (const round of rounds) {
     const isCompleted = round.status === "completed" || round.status === "draw";
 
     for (const pid of round.handsPlayed) {
@@ -53,22 +94,18 @@ export function computeLedger(event: MahjongEvent, tableId?: string): PointLedge
     }
 
     for (const win of round.wins) {
-      // Ensure departed players who have wins still get counted
-      if (!ledgers.has(win.winnerId)) {
-        ensurePlayer(win.winnerId, "Unknown");
+      const winner = ledgers.get(win.winnerId);
+      if (winner) {
+        winner.wins++;
+        winner.totalPoints += win.pointsPerPayer * win.paidBy.length;
+        if (win.totalFan > winner.biggestFan) winner.biggestFan = win.totalFan;
       }
-      const winner = ledgers.get(win.winnerId)!;
-      winner.wins++;
-      winner.totalPoints += win.pointsPerPayer * win.paidBy.length;
-      if (win.totalFan > winner.biggestFan) winner.biggestFan = win.totalFan;
-
       for (const payerId of win.paidBy) {
-        if (!ledgers.has(payerId)) {
-          ensurePlayer(payerId, "Unknown");
+        const payer = ledgers.get(payerId);
+        if (payer) {
+          payer.losses++;
+          payer.totalPoints -= win.pointsPerPayer;
         }
-        const payer = ledgers.get(payerId)!;
-        payer.losses++;
-        payer.totalPoints -= win.pointsPerPayer;
       }
     }
 
@@ -89,7 +126,7 @@ export function computeLedger(event: MahjongEvent, tableId?: string): PointLedge
       : 0;
   }
 
-  // Sort by average points per game (the fairest ranking), then total points as tiebreaker
+  // Sort by average points per game, then total points as tiebreaker
   return Array.from(ledgers.values()).sort(
     (a, b) => b.avgPointsPerGame - a.avgPointsPerGame || b.totalPoints - a.totalPoints
   );
