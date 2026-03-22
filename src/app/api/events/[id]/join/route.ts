@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invalid table code" }, { status: 404 });
   }
 
-  // Check if name already taken
+  // Check if already an active player with this name
   const existing = event.players.find((p) => p.name.toLowerCase() === playerName.trim().toLowerCase());
   if (existing) {
     return NextResponse.json({ error: "Name already taken", player: existing }, { status: 409 });
@@ -34,11 +34,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Table is full (max 4 players)" }, { status: 400 });
   }
 
-  // Create player and add to table
-  const player = { id: nanoid(6), name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
+  // Check if this is a returning player (same name in departedPlayers)
+  // Restore their original ID so scores carry over
+  const departedIdx = (event.departedPlayers || []).findIndex(
+    (dp) => dp.name.toLowerCase() === playerName.trim().toLowerCase()
+  );
+
+  let player;
+  if (departedIdx >= 0) {
+    const departed = event.departedPlayers![departedIdx];
+    // Restore with original ID — scores follow the player
+    player = { id: departed.id, name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
+    // Remove from departed list
+    event.departedPlayers!.splice(departedIdx, 1);
+  } else {
+    // Brand new player
+    player = { id: nanoid(6), name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
+  }
+
   event.players.push(player);
   table.playerIds.push(player.id);
   await saveEvent(event);
 
-  return NextResponse.json({ player, table: { id: table.id, name: table.name } });
+  return NextResponse.json({ player, table: { id: table.id, name: table.name }, returning: departedIdx >= 0 });
 }
