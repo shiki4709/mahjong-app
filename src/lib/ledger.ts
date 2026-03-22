@@ -1,6 +1,6 @@
 import { MahjongEvent, PointLedger } from "./types";
 
-export function computeLedger(event: MahjongEvent): PointLedger[] {
+export function computeLedger(event: MahjongEvent, tableId?: string): PointLedger[] {
   const ledgers = new Map<string, PointLedger>();
 
   function ensurePlayer(id: string, name: string) {
@@ -19,17 +19,28 @@ export function computeLedger(event: MahjongEvent): PointLedger[] {
     }
   }
 
-  // Active players
-  for (const player of event.players) {
+  // Filter players by table if specified
+  const players = tableId
+    ? event.players.filter((p) => p.tableId === tableId)
+    : event.players;
+
+  for (const player of players) {
     ensurePlayer(player.id, player.name);
   }
 
   // Departed players — scores stay on the leaderboard
   for (const dp of event.departedPlayers || []) {
-    ensurePlayer(dp.id, `${dp.name} (left)`);
+    if (!tableId) {
+      ensurePlayer(dp.id, `${dp.name} (left)`);
+    }
   }
 
-  for (const round of event.rounds) {
+  // Filter rounds by table if specified
+  const rounds = tableId
+    ? event.rounds.filter((r) => r.tableId === tableId)
+    : event.rounds;
+
+  for (const round of rounds) {
     // Track games played: each player in handsPlayed participated in this round
     const isCompleted = round.status === "completed" || round.status === "draw";
 

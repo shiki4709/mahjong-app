@@ -49,14 +49,16 @@ export default function EventDashboard() {
     </div>
   );
 
-  const ledgers = computeLedger(event);
   const myPlayer = event.players.find(p => p.id === myPlayerId);
   const myTable = event.tables.find(t => t.id === myPlayer?.tableId);
-  const myLedger = ledgers.find(l => l.playerId === myPlayerId);
 
-  // Filter leaderboard to just this player's table
-  const tablePlayerIds = new Set(myTable?.playerIds || []);
-  const tableLedgers = ledgers.filter(l => tablePlayerIds.has(l.playerId));
+  // Full event ledger (for host and overall ranking)
+  const ledgers = computeLedger(event);
+  // Table-scoped ledger (for player view — only their table's scores)
+  const tableLedgers = myTable ? computeLedger(event, myTable.id) : [];
+  const myLedger = tableLedgers.find(l => l.playerId === myPlayerId) || ledgers.find(l => l.playerId === myPlayerId);
+
+  const myTableRounds = event.rounds.filter(r => r.tableId === myTable?.id);
 
   return (
     <div className="space-y-5">
@@ -77,7 +79,7 @@ export default function EventDashboard() {
       </div>
 
       {/* Player welcome */}
-      {!isHost && myPlayer && event.rounds.length === 0 && (
+      {!isHost && myPlayer && myTableRounds.length === 0 && (
         <div className="mahjong-card p-4 border-l-4 border-[#c41e3a]">
           <p className="text-sm text-gray-600">
             <span className="font-bold text-gray-800">Hi {myPlayer.name}!</span> When you win a hand, tap <span className="font-bold text-[#c41e3a]">我胡了!</span> below to snap a photo. The app calculates your score automatically.
@@ -119,9 +121,10 @@ export default function EventDashboard() {
         </Link>
       )}
 
-      {/* Round complete banner */}
+      {/* Round complete banner — scoped to this table */}
       {(() => {
-        const lastRound = event.rounds[event.rounds.length - 1];
+        const rounds = !isHost && myTable ? myTableRounds : event.rounds;
+        const lastRound = rounds[rounds.length - 1];
         if (lastRound && lastRound.status === "completed" && roundDismissed !== lastRound.id) {
           const winners = lastRound.wins.map((w) => event.players.find((p) => p.id === w.winnerId)?.name).filter(Boolean);
           const loser = event.players.find((p) =>
@@ -130,7 +133,7 @@ export default function EventDashboard() {
           return (
             <div className="mahjong-card p-5 border-l-4 border-amber-500 text-center space-y-3">
               <div className="text-3xl">🎊</div>
-              <p className="font-bold text-gray-800">Round {event.rounds.length} Complete!</p>
+              <p className="font-bold text-gray-800">Round {rounds.length} Complete!</p>
               <p className="text-xs text-gray-500">
                 {winners.join(", ")} won
                 {loser && <> — <span className="text-red-500 font-bold">{loser.name}</span> didn&apos;t make it 😅</>}
@@ -153,7 +156,7 @@ export default function EventDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider">Your Stats</h2>
             <span className="text-xs text-gray-400">
-              #{ledgers.findIndex((l) => l.playerId === myPlayerId) + 1} of {ledgers.length} overall
+              #{tableLedgers.findIndex((l) => l.playerId === myPlayerId) + 1} of {tableLedgers.length} at table
             </span>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
