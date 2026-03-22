@@ -54,8 +54,13 @@ export default function EventDashboard() {
 
   // Full event ledger — scores follow players across all tables
   const ledgers = computeLedger(event);
-  // Table view: show only players at this table, but with their full event scores
+
+  // Table view: current players + anyone who played rounds at this table
   const tablePlayerIds = new Set(myTable?.playerIds || []);
+  // Also include players who participated in this table's rounds (departed players)
+  for (const round of event.rounds.filter(r => r.tableId === myTable?.id)) {
+    for (const pid of round.handsPlayed) tablePlayerIds.add(pid);
+  }
   const tableLedgers = ledgers.filter(l => tablePlayerIds.has(l.playerId));
   const myLedger = ledgers.find(l => l.playerId === myPlayerId);
 
