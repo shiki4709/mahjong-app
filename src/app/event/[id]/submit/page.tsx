@@ -27,12 +27,19 @@ export default function SubmitWin() {
   const [isRobbingKong, setIsRobbingKong] = useState(false);
   const [isDealerFirstDraw, setIsDealerFirstDraw] = useState(false);
   const [isFirstDraw, setIsFirstDraw] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [result, setResult] = useState<{ fan: FanBreakdown[]; totalFan: number; score: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
+  }, [eventId]);
+
+  // Auto-set winner from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`mahjong-player-${eventId}`);
+    if (saved) setWinnerId(saved);
   }, [eventId]);
 
   function resetToPhoto() {
@@ -58,7 +65,6 @@ export default function SubmitWin() {
       if (data.error && !data.tiles) {
         setPhotoUrl(data.photoUrl || "");
         setError(data.error);
-        // Stay on photo step so they can try again
         setLoading(false);
       } else {
         setTiles(data.tiles);
@@ -77,6 +83,7 @@ export default function SubmitWin() {
   async function submitWin() {
     if (!winnerId) return;
     setLoading(true);
+    setError("");
     const activeRound = event?.rounds.find((r) => r.status === "in_progress");
     let roundId = activeRound?.id;
     if (!roundId) {
@@ -104,6 +111,8 @@ export default function SubmitWin() {
 
   if (!event) return <div className="text-center py-20 text-gray-400"><div className="text-4xl mb-3">🀄</div>Loading...</div>;
 
+  const winner = event.players.find((p) => p.id === winnerId);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -113,7 +122,7 @@ export default function SubmitWin() {
             ← {step === "photo" ? "Back" : "Start Over"}
           </button>
           <div className="flex-1 text-center">
-            <h1 className="text-lg font-bold">Submit Win</h1>
+            <h1 className="text-lg font-bold">我胡了! I Won!</h1>
           </div>
           <div className="w-12"></div>
         </div>
@@ -224,56 +233,151 @@ export default function SubmitWin() {
         </div>
       )}
 
-      {/* Step 3: Win details */}
+      {/* Step 3: Win details — simplified */}
       {step === "details" && (
-        <div className="mahjong-card p-5 space-y-4">
-          <HandDisplay tiles={tiles} />
-
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Who won?</label>
-            <select value={winnerId} onChange={(e) => setWinnerId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c41e3a]/30 bg-gray-50/50">
-              <option value="">Select player</option>
-              {event.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+        <div className="space-y-4">
+          <div className="mahjong-card p-4">
+            <HandDisplay tiles={tiles} />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Win type</label>
+          {/* Winner — auto-detected, changeable */}
+          <div className="mahjong-card p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Winner</p>
+                <p className="font-bold text-gray-800">{winner?.name || "Select player"}</p>
+              </div>
+              {!winner && (
+                <span className="text-xs text-red-500 font-medium">Required</span>
+              )}
+            </div>
+            {/* Show player selector only if not auto-detected or user wants to change */}
+            {!winner ? (
+              <div className="space-y-2 mt-3">
+                {event.players.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setWinnerId(p.id)}
+                    className="w-full py-2.5 px-4 rounded-xl text-left text-sm font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                onClick={() => setWinnerId("")}
+                className="text-xs text-gray-400 hover:text-gray-600 mt-1"
+              >
+                Change player
+              </button>
+            )}
+          </div>
+
+          {/* The one essential question: how did you win? */}
+          <div className="mahjong-card p-4 space-y-3">
+            <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">How did you win?</p>
+
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setWinType("zimo")} className={`py-2.5 rounded-xl font-bold text-sm transition-colors ${winType === "zimo" ? "bg-[#c41e3a] text-white" : "bg-gray-100 hover:bg-gray-200"}`}>
-                自摸 Self-draw
+              <button
+                onClick={() => setWinType("zimo")}
+                className={`py-4 rounded-xl text-center transition-colors ${
+                  winType === "zimo"
+                    ? "bg-[#c41e3a] text-white shadow-md shadow-red-900/20"
+                    : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                }`}
+              >
+                <span className="text-lg font-bold block">自摸</span>
+                <span className={`text-xs block mt-0.5 ${winType === "zimo" ? "text-red-200" : "text-gray-400"}`}>I drew it myself</span>
               </button>
-              <button onClick={() => setWinType("dianpao")} className={`py-2.5 rounded-xl font-bold text-sm transition-colors ${winType === "dianpao" ? "bg-[#c41e3a] text-white" : "bg-gray-100 hover:bg-gray-200"}`}>
-                点炮 Discard
+              <button
+                onClick={() => setWinType("dianpao")}
+                className={`py-4 rounded-xl text-center transition-colors ${
+                  winType === "dianpao"
+                    ? "bg-[#c41e3a] text-white shadow-md shadow-red-900/20"
+                    : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                }`}
+              >
+                <span className="text-lg font-bold block">点炮</span>
+                <span className={`text-xs block mt-0.5 ${winType === "dianpao" ? "text-red-200" : "text-gray-400"}`}>Someone threw it</span>
               </button>
+            </div>
+
+            {/* Explain the difference */}
+            <div className="bg-gray-50 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-gray-500">
+                {winType === "zimo"
+                  ? "💡 Self-draw: all 3 other players pay you. Worth 1 extra fan!"
+                  : "💡 Discard win: only the player who threw the tile pays you."
+                }
+              </p>
             </div>
           </div>
 
+          {/* Who discarded? — only shown for dianpao */}
           {winType === "dianpao" && (
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Who discarded?</label>
-              <select value={discarderId} onChange={(e) => setDiscarderId(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c41e3a]/30 bg-gray-50/50">
-                <option value="">Select player</option>
-                {event.players.filter((p) => p.id !== winnerId).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+            <div className="mahjong-card p-4 space-y-2">
+              <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Who threw the winning tile?</p>
+              <div className="space-y-2">
+                {event.players.filter((p) => p.id !== winnerId).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setDiscarderId(p.id)}
+                    className={`w-full py-2.5 px-4 rounded-xl text-left text-sm font-medium transition-colors ${
+                      discarderId === p.id
+                        ? "bg-[#c41e3a] text-white"
+                        : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Bonus (check if applicable)</label>
-            <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isLastTile} onChange={(e) => setIsLastTile(e.target.checked)} /> 海底捞月 Last tile</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isKongWin} onChange={(e) => setIsKongWin(e.target.checked)} /> 杠上开花 Win off kong</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isRobbingKong} onChange={(e) => setIsRobbingKong(e.target.checked)} /> 杠上炮 Robbing a kong</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isDealerFirstDraw} onChange={(e) => setIsDealerFirstDraw(e.target.checked)} /> 天胡 Heavenly hand</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="rounded" checked={isFirstDraw} onChange={(e) => setIsFirstDraw(e.target.checked)} /> 地胡 Earthly hand</label>
-            </div>
+          {/* Advanced / rare bonuses — hidden by default */}
+          <div className="mahjong-card overflow-hidden">
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full px-4 py-3 flex items-center justify-between text-left"
+            >
+              <span className="text-xs text-gray-400">
+                Rare bonuses (usually not needed)
+              </span>
+              <span className={`text-gray-400 text-xs transition-transform ${showAdvanced ? "rotate-180" : ""}`}>▾</span>
+            </button>
+            {showAdvanced && (
+              <div className="px-4 pb-4 space-y-2">
+                <p className="text-[10px] text-gray-400 mb-2">Only check these if you know they apply. Most hands won&apos;t have any.</p>
+                {[
+                  { checked: isLastTile, onChange: setIsLastTile, name: "海底捞月", en: "Last Tile", desc: "Won on the very last tile from the wall" },
+                  { checked: isKongWin, onChange: setIsKongWin, name: "杠上开花", en: "Win off Kong", desc: "Won on the tile drawn after declaring a Kong" },
+                  { checked: isRobbingKong, onChange: setIsRobbingKong, name: "杠上炮", en: "Robbing a Kong", desc: "Won by claiming someone else's Kong tile" },
+                  { checked: isDealerFirstDraw, onChange: setIsDealerFirstDraw, name: "天胡", en: "Heavenly Hand", desc: "Dealer won on their very first draw (super rare!)" },
+                  { checked: isFirstDraw, onChange: setIsFirstDraw, name: "地胡", en: "Earthly Hand", desc: "Non-dealer won on their first draw" },
+                ].map(({ checked, onChange, name, en, desc }) => (
+                  <label key={name} className="flex items-start gap-3 bg-gray-50 rounded-lg p-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded mt-0.5"
+                      checked={checked}
+                      onChange={(e) => onChange(e.target.checked)}
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-gray-700">{name} <span className="font-normal text-gray-400">{en}</span></p>
+                      <p className="text-[10px] text-gray-500">{desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
             onClick={submitWin}
             disabled={!winnerId || loading || (winType === "dianpao" && !discarderId)}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
           >
             {loading ? "Submitting..." : "Submit Win"}
           </button>
