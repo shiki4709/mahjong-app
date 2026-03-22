@@ -90,11 +90,23 @@ export function validateHand(tiles: Tile[], kongCount: number = 0): ValidationRe
     counts.set(key, (counts.get(key) || 0) + 1);
   }
 
+  // Check no tile appears more than 4 times (only 4 copies exist in mahjong)
+  for (const [key, count] of counts) {
+    if (count > 4) {
+      const [suit, num] = key.split("-");
+      const suitNames: Record<string, string> = { wan: "万", tiao: "条", tong: "筒" };
+      return {
+        valid: false,
+        reason: `${count}× ${num}${suitNames[suit] || suit} detected — only 4 copies of each tile exist. The AI may have misread a tile. Try fixing the tiles manually.`,
+      };
+    }
+  }
+
   const validStructure = isSevenPairs(counts) || canDecompose(counts, suits);
   if (!validStructure) {
     return {
       valid: false,
-      reason: "No valid set combination found. Hand must be 4 sets + 1 pair, or 7 pairs.",
+      reason: "These tiles can't form 4 sets + 1 pair (or 7 pairs). A tile may have been misread — try tapping 'Fix tiles' to correct them.",
     };
   }
 

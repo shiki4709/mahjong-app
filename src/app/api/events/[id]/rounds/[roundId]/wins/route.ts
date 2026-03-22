@@ -16,6 +16,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json();
   const { winnerId, tiles, photoUrl, winType, discarderId, kongCount = 0, isLastTile = false, isKongWin = false, isRobbingKong = false, isDealerFirstDraw = false, isFirstDraw = false } = body;
 
+  // Check if player already won this round
+  const alreadyWonCheck = round.wins.find((w) => w.winnerId === winnerId);
+  if (alreadyWonCheck) {
+    return NextResponse.json({ error: "You already won this round!", valid: false }, { status: 400 });
+  }
+
   const validation = validateHand(tiles, kongCount);
   if (!validation.valid) {
     return NextResponse.json({ error: validation.reason, valid: false }, { status: 400 });
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const totalFan = fan.reduce((sum, f) => sum + f.value, 0);
 
   if (totalFan < 1) {
-    return NextResponse.json({ error: "Hand must have at least 1 fan to win.", valid: false }, { status: 400 });
+    return NextResponse.json({ error: "This hand has 0 fan — in Sichuan mahjong you need at least 1 fan to win. Did you self-draw (自摸)? That adds 1 fan.", valid: false }, { status: 400 });
   }
 
   const alreadyWon = round.wins.map((w) => w.winnerId);
