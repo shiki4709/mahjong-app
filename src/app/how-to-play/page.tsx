@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { TileDisplay, SuitBadge } from "@/components/tile";
 import { Tile } from "@/lib/types";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 // Helper to make tile objects concisely
 function t(suit: Tile["suit"], number: number): Tile {
@@ -56,8 +56,9 @@ export default function HowToPlay() {
         {step === 3 && <StepGoalInteractive />}
         {step === 4 && <StepGameplay />}
         {step === 5 && <StepClaiming />}
-        {step === 6 && <StepScoring />}
-        {step === 7 && <StepApp />}
+        {step === 6 && <StepWinTypes />}
+        {step === 7 && <StepScoring />}
+        {step === 8 && <StepApp />}
       </div>
 
       {/* Navigation */}
@@ -505,69 +506,216 @@ function StepClaiming() {
   );
 }
 
-/* ─── Step 6: Scoring ─── */
+/* ─── Step 6: Win Types (visual) ─── */
+function StepWinTypes() {
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <h2 className="text-xl font-bold text-gray-800">Ways to Win</h2>
+        <p className="text-sm text-gray-500 mt-1">Standard hand OR seven pairs</p>
+      </div>
+
+      {/* Standard hand */}
+      <div className="mahjong-card p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Standard: 4 Sets + 1 Pair</p>
+        <div className="flex flex-wrap gap-0.5 justify-center">
+          <TileDisplay tile={t("tiao", 2)} size="sm" />
+          <TileDisplay tile={t("tiao", 3)} size="sm" />
+          <TileDisplay tile={t("tiao", 4)} size="sm" />
+          <div className="w-1" />
+          <TileDisplay tile={t("wan", 5)} size="sm" />
+          <TileDisplay tile={t("wan", 5)} size="sm" />
+          <TileDisplay tile={t("wan", 5)} size="sm" />
+          <div className="w-1" />
+          <TileDisplay tile={t("tiao", 7)} size="sm" />
+          <TileDisplay tile={t("tiao", 8)} size="sm" />
+          <TileDisplay tile={t("tiao", 9)} size="sm" />
+          <div className="w-1" />
+          <TileDisplay tile={t("wan", 1)} size="sm" />
+          <TileDisplay tile={t("wan", 2)} size="sm" />
+          <TileDisplay tile={t("wan", 3)} size="sm" />
+          <div className="w-1" />
+          <TileDisplay tile={t("tiao", 6)} size="sm" />
+          <TileDisplay tile={t("tiao", 6)} size="sm" />
+        </div>
+        <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400">
+          <span className="bg-gray-100 px-1.5 py-0.5 rounded">seq</span>
+          <span className="bg-gray-100 px-1.5 py-0.5 rounded">trip</span>
+          <span className="bg-gray-100 px-1.5 py-0.5 rounded">seq</span>
+          <span className="bg-gray-100 px-1.5 py-0.5 rounded">seq</span>
+          <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">pair</span>
+        </div>
+      </div>
+
+      {/* Seven pairs — the alternative */}
+      <div className="mahjong-card p-4 space-y-2 border-l-4 border-[#c41e3a]">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Alternative: Seven Pairs</p>
+          <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">2 fan</span>
+        </div>
+        <p className="text-xs text-gray-500">Instead of sets, collect 7 pairs — worth bonus points!</p>
+        <div className="flex flex-wrap gap-0.5 justify-center">
+          {[
+            [t("wan", 1), t("wan", 1)],
+            [t("wan", 4), t("wan", 4)],
+            [t("wan", 7), t("wan", 7)],
+            [t("tiao", 2), t("tiao", 2)],
+            [t("tiao", 5), t("tiao", 5)],
+            [t("tiao", 8), t("tiao", 8)],
+            [t("wan", 9), t("wan", 9)],
+          ].map((pair, pi) => (
+            <div key={pi} className="flex gap-0.5">
+              <TileDisplay tile={pair[0]} size="sm" />
+              <TileDisplay tile={pair[1]} size="sm" />
+              {pi < 6 && <div className="w-0.5" />}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center gap-1 text-[10px] text-gray-400">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <span key={i} className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">pair</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Bonus hand types */}
+      <div className="mahjong-card p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bonus Hand Types</p>
+        <p className="text-xs text-gray-500">These earn extra points on top of your win:</p>
+        <div className="space-y-2">
+          {[
+            { name: "清一色", en: "Flush", fan: 2, desc: "All tiles same suit", visual: "🟥🟥🟥🟥🟥" },
+            { name: "对对胡", en: "All Triplets", fan: 1, desc: "All sets are 3-of-a-kind, no sequences", visual: "🔴🔴🔴" },
+            { name: "带幺九", en: "Terminals", fan: 1, desc: "Every set has a 1 or 9", visual: "1️⃣9️⃣" },
+            { name: "金钩钓", en: "Golden Hook", fan: 2, desc: "4 triplets, waiting on the pair", visual: "🪝" },
+          ].map((h) => (
+            <div key={h.name} className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
+              <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">+{h.fan}</span>
+              <div>
+                <p className="text-xs font-bold text-gray-800">{h.name} · {h.en}</p>
+                <p className="text-[10px] text-gray-500">{h.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 7: Scoring & Payment ─── */
 function StepScoring() {
-  const [selectedFan, setSelectedFan] = useState<number | null>(null);
-
-  const hands = [
-    { name: "自摸", en: "Self-draw", fan: 1, desc: "Won by drawing the tile yourself", color: "bg-blue-50 border-blue-200" },
-    { name: "对对胡", en: "All Triplets", fan: 1, desc: "All sets are triplets — no sequences", color: "bg-purple-50 border-purple-200" },
-    { name: "清一色", en: "Flush", fan: 2, desc: "All tiles are the same suit", color: "bg-emerald-50 border-emerald-200" },
-    { name: "七对", en: "Seven Pairs", fan: 2, desc: "7 pairs instead of 4+1", color: "bg-pink-50 border-pink-200" },
-    { name: "天胡", en: "Heavenly Hand", fan: 4, desc: "Dealer wins first draw — super rare!", color: "bg-amber-50 border-amber-200" },
-  ];
-
-  const totalFan = selectedFan ?? 0;
-  const score = Math.pow(2, totalFan);
+  const [fanCount, setFanCount] = useState(1);
 
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-800">Scoring is Simple</h2>
-        <p className="text-sm text-gray-500 mt-1">Each bonus doubles your score</p>
+        <h2 className="text-xl font-bold text-gray-800">Scoring & Payment</h2>
+        <p className="text-sm text-gray-500 mt-1">Each bonus (fan) doubles your score</p>
       </div>
 
-      {/* Interactive score calculator */}
-      <div className="mahjong-card p-5 text-center">
-        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">Score formula</p>
+      {/* Important rule */}
+      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+        <p className="text-xs text-red-700">
+          <span className="font-bold">Rule:</span> You need at least <span className="font-bold">1 fan</span> to win.
+          A basic discard win with no bonuses = 0 fan = can&apos;t win! Self-draw (自摸) gives you 1 fan.
+        </p>
+      </div>
+
+      {/* Interactive calculator */}
+      <div className="mahjong-card p-4 text-center space-y-3">
+        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Try it: slide to add fan</p>
+        <input
+          type="range"
+          min={0}
+          max={6}
+          value={fanCount}
+          onChange={(e) => setFanCount(Number(e.target.value))}
+          className="w-full accent-[#c41e3a]"
+        />
         <div className="flex items-center justify-center gap-2 text-lg">
-          <span className="bg-gray-100 px-3 py-1 rounded-lg font-bold text-gray-700">Base</span>
+          <span className="bg-gray-100 px-3 py-1 rounded-lg font-bold text-gray-700 text-sm">Base</span>
           <span className="text-gray-400">×</span>
-          <span className="bg-[#c41e3a] text-white px-3 py-1 rounded-lg font-bold">2<sup>{totalFan}</sup></span>
+          <span className="bg-[#c41e3a] text-white px-3 py-1 rounded-lg font-bold text-sm">2<sup>{fanCount}</sup></span>
           <span className="text-gray-400">=</span>
-          <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg font-bold">{score}×</span>
+          <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-lg font-bold text-sm">{Math.pow(2, fanCount)}×</span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">Tap a hand type below to see how it affects score</p>
+        <p className="text-[10px] text-gray-400">
+          {fanCount === 0 && "0 fan — can't win! Need at least 1 fan."}
+          {fanCount === 1 && "1 fan — basic self-draw win (2× base)"}
+          {fanCount === 2 && "2 fan — e.g. flush or seven pairs (4× base)"}
+          {fanCount === 3 && "3 fan — e.g. flush + self-draw (8× base)"}
+          {fanCount >= 4 && `${fanCount} fan — ${Math.pow(2, fanCount)}× base! Big hand!`}
+        </p>
       </div>
 
-      {/* Hand types - tappable */}
-      <div className="space-y-2">
-        {hands.map((h, i) => (
-          <button
-            key={h.name}
-            onClick={() => setSelectedFan(selectedFan === h.fan ? null : h.fan)}
-            className={`w-full mahjong-card p-3 flex items-center gap-3 text-left transition-colors ${
-              selectedFan === h.fan ? "border-l-4 border-[#c41e3a]" : ""
-            }`}
-          >
-            <span className="bg-[#c41e3a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-              {h.fan} fan
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-gray-800">{h.name} · {h.en}</p>
-              <p className="text-[10px] text-gray-500 truncate">{h.desc}</p>
+      {/* Stacking example */}
+      <div className="mahjong-card p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bonuses stack!</p>
+        <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-600">清一色 Flush</span>
+            <span className="font-bold text-[#c41e3a]">+2 fan</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-600">自摸 Self-draw</span>
+            <span className="font-bold text-[#c41e3a]">+1 fan</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-600">对对胡 All Triplets</span>
+            <span className="font-bold text-[#c41e3a]">+1 fan</span>
+          </div>
+          <div className="h-px bg-gray-200" />
+          <div className="flex justify-between text-xs font-bold">
+            <span className="text-gray-800">Total</span>
+            <span className="text-[#c41e3a]">4 fan → 16× base!</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment rules */}
+      <div className="mahjong-card p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Who Pays?</p>
+        <div className="space-y-2">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className="text-xs font-bold text-blue-800">自摸 Self-draw — all 3 pay you</p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-lg">😎</span>
+              <span className="text-xs text-blue-600">←</span>
+              <span className="text-sm">💰💰💰</span>
+              <span className="text-xs text-blue-600">from</span>
+              <span className="text-lg">😰😰😰</span>
             </div>
-          </button>
-        ))}
+          </div>
+          <div className="bg-amber-50 rounded-lg p-3">
+            <p className="text-xs font-bold text-amber-800">点炮 Discard — only the thrower pays</p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-lg">😎</span>
+              <span className="text-xs text-amber-600">←</span>
+              <span className="text-sm">💰</span>
+              <span className="text-xs text-amber-600">from</span>
+              <span className="text-lg">😰</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mahjong-card p-3 space-y-1">
-        <p className="text-xs text-gray-600">
-          <span className="font-bold text-gray-800">自摸 (self-draw):</span> all 3 others pay you
-        </p>
-        <p className="text-xs text-gray-600">
-          <span className="font-bold text-gray-800">点炮 (off discard):</span> only the discarder pays
-        </p>
+      {/* Kong bonuses */}
+      <div className="mahjong-card p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kong Bonus (separate from winning)</p>
+        <p className="text-[10px] text-gray-500">Declaring 4-of-a-kind earns instant bonus points:</p>
+        <div className="space-y-1.5">
+          {[
+            { name: "明杠 Open", desc: "Claimed from discard → discarder pays 1× base" },
+            { name: "暗杠 Concealed", desc: "Drew all 4 yourself → all 3 pay 2× base each" },
+            { name: "补杠 Added", desc: "Upgrade a triplet → all 3 pay 1× base each" },
+          ].map((k) => (
+            <div key={k.name} className="flex gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+              <span className="font-bold text-gray-800 shrink-0">{k.name}</span>
+              <span className="text-gray-500">{k.desc}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

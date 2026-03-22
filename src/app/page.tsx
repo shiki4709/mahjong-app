@@ -91,11 +91,15 @@ export default function Home() {
       return;
     }
 
-    // Save player info — use URL param as primary identity so each
-    // tab on the same device keeps its own player
+    // Player identity lives in the URL (?player=xxx)
+    // Only write to localStorage if no one else has claimed it yet
+    // (avoids overwriting when multiple players share one browser)
     const player = joinData.player;
-    localStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
-    localStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
+    const existingLocal = localStorage.getItem(`mahjong-player-${data.eventId}`);
+    if (!existingLocal) {
+      localStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
+      localStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
+    }
 
     setLoading(false);
     router.push(`/event/${data.eventId}?player=${player.id}`);

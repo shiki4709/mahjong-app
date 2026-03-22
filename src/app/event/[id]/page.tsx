@@ -25,11 +25,9 @@ export default function EventDashboard() {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
+    // URL param is source of truth (tab-specific), localStorage is fallback only
     const saved = playerParam || localStorage.getItem(`mahjong-player-${eventId}`);
-    if (saved) {
-      setMyPlayerId(saved);
-      localStorage.setItem(`mahjong-player-${eventId}`, saved);
-    }
+    if (saved) setMyPlayerId(saved);
   }, [eventId, playerParam]);
 
   const fetchEvent = useCallback(async () => {
