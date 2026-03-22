@@ -109,6 +109,16 @@ export default function EventDashboard() {
         </Link>
       </div>
 
+      {/* How to play — always visible */}
+      {!isHost && (
+        <Link
+          href="/how-to-play"
+          className="block text-center text-xs text-gray-400 hover:text-[#c41e3a] transition-colors"
+        >
+          📖 How to Play — Rules & Scoring Reference
+        </Link>
+      )}
+
       {/* Round complete banner */}
       {(() => {
         const lastRound = event.rounds[event.rounds.length - 1];
