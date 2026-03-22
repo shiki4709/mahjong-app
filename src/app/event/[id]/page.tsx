@@ -52,11 +52,12 @@ export default function EventDashboard() {
   const myPlayer = event.players.find(p => p.id === myPlayerId);
   const myTable = event.tables.find(t => t.id === myPlayer?.tableId);
 
-  // Full event ledger (for host and overall ranking)
+  // Full event ledger — scores follow players across all tables
   const ledgers = computeLedger(event);
-  // Table-scoped ledger (for player view — only their table's scores)
-  const tableLedgers = myTable ? computeLedger(event, myTable.id) : [];
-  const myLedger = tableLedgers.find(l => l.playerId === myPlayerId) || ledgers.find(l => l.playerId === myPlayerId);
+  // Table view: show only players at this table, but with their full event scores
+  const tablePlayerIds = new Set(myTable?.playerIds || []);
+  const tableLedgers = ledgers.filter(l => tablePlayerIds.has(l.playerId));
+  const myLedger = ledgers.find(l => l.playerId === myPlayerId);
 
   const myTableRounds = event.rounds.filter(r => r.tableId === myTable?.id);
 
