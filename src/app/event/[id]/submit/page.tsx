@@ -6,7 +6,7 @@ import { Tile, MahjongEvent, FanBreakdown } from "@/lib/types";
 import { HandDisplay } from "@/components/hand-display";
 import { TilePicker } from "@/components/tile-picker";
 
-type Step = "photo" | "confirm" | "manual" | "details" | "result";
+type Step = "tiles" | "details" | "result";
 
 export default function SubmitWin() {
   const params = useParams();
@@ -16,11 +16,8 @@ export default function SubmitWin() {
   const playerParam = searchParams.get("player");
 
   const [event, setEvent] = useState<MahjongEvent | null>(null);
-  const [step, setStep] = useState<Step>("photo");
+  const [step, setStep] = useState<Step>("tiles");
   const [tiles, setTiles] = useState<Tile[]>([]);
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [kongs, setKongs] = useState(0);
-  const [validation, setValidation] = useState<{ valid: boolean; reason?: string } | null>(null);
   const [winnerId, setWinnerId] = useState("");
   const [winType, setWinType] = useState<"zimo" | "dianpao">("zimo");
   const [discarderId, setDiscarderId] = useState("");
@@ -44,49 +41,17 @@ export default function SubmitWin() {
     if (saved) setWinnerId(saved);
   }, [eventId, playerParam]);
 
-  function resetToPhoto() {
-    setStep("photo");
+  function resetToTiles() {
+    setStep("tiles");
     setTiles([]);
-    setPhotoUrl("");
-    setKongs(0);
-    setValidation(null);
     setError("");
     setLoading(false);
-  }
-
-  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoading(true);
-    setError("");
-    const formData = new FormData();
-    formData.append("photo", file);
-    try {
-      const res = await fetch("/api/recognize", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.error && !data.tiles) {
-        setPhotoUrl(data.photoUrl || "");
-        setError(data.error);
-        setLoading(false);
-      } else {
-        setTiles(data.tiles);
-        setPhotoUrl(data.photoUrl);
-        setKongs(data.kongs || 0);
-        setValidation(data.validation);
-        setStep("confirm");
-        setLoading(false);
-      }
-    } catch {
-      setError("Upload failed. Please try again.");
-      setLoading(false);
-    }
   }
 
   async function submitWin() {
     if (!winnerId) return;
     setLoading(true);
     setError("");
-    // Find active round for THIS player's table only
     const winner = event?.players.find((p) => p.id === winnerId);
     const winnerTableId = winner?.tableId;
     const activeRound = event?.rounds.find((r) => r.status === "in_progress" && r.tableId === winnerTableId);
@@ -104,7 +69,7 @@ export default function SubmitWin() {
     const res = await fetch(`/api/events/${eventId}/rounds/${roundId}/wins`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ winnerId, tiles, photoUrl, winType, discarderId: winType === "dianpao" ? discarderId : undefined, kongCount: kongs, isLastTile, isKongWin, isRobbingKong, isDealerFirstDraw, isFirstDraw }),
+      body: JSON.stringify({ winnerId, tiles, photoUrl: "", winType, discarderId: winType === "dianpao" ? discarderId : undefined, kongCount: 0, isLastTile, isKongWin, isRobbingKong, isDealerFirstDraw, isFirstDraw }),
     });
     const data = await res.json();
     if (!data.valid) { setError(data.error); setLoading(false); return; }
@@ -122,8 +87,8 @@ export default function SubmitWin() {
       {/* Header */}
       <div className="mahjong-header -mx-4 px-6 pt-6 pb-5 text-white rounded-b-3xl shadow-lg">
         <div className="flex items-center gap-3">
-          <button onClick={() => step === "photo" ? router.push(`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`) : resetToPhoto()} className="text-white/70 hover:text-white text-sm">
-            ← {step === "photo" ? "Back" : "Start Over"}
+          <button onClick={() => step === "tiles" ? router.push(`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`) : resetToTiles()} className="text-white/70 hover:text-white text-sm">
+            ← {step === "tiles" ? "Back" : "Start Over"}
           </button>
           <div className="flex-1 text-center">
             <h1 className="text-lg font-bold">我胡了! I Won!</h1>
@@ -132,9 +97,9 @@ export default function SubmitWin() {
         </div>
         {/* Step indicator */}
         <div className="flex gap-1.5 mt-3 justify-center">
-          {["Photo", "Confirm", "Details", "Done"].map((label, i) => {
-            const stepOrder = ["photo", "confirm", "details", "result"];
-            const currentIdx = step === "manual" ? 1 : stepOrder.indexOf(step);
+          {["Tiles", "Details", "Done"].map((label, i) => {
+            const stepOrder: Step[] = ["tiles", "details", "result"];
+            const currentIdx = stepOrder.indexOf(step);
             return (
               <div key={label} className="flex items-center gap-1.5">
                 <div className={`w-2 h-2 rounded-full ${i <= currentIdx ? "bg-white" : "bg-white/30"}`} />
@@ -152,92 +117,14 @@ export default function SubmitWin() {
         </div>
       )}
 
-      {/* Step 1: Photo */}
-      {step === "photo" && (
-        <div className="mahjong-card p-5 space-y-4 text-center">
-          <div className="text-4xl mb-1">📸</div>
-          <p className="font-bold text-lg">Take a photo of your winning hand</p>
-          <p className="text-sm text-gray-500">Lay out all tiles face-up and snap a clear photo</p>
-
-          <label className={`block w-full py-4 ${loading ? "bg-gray-400" : "bg-[#c41e3a] hover:bg-[#a01830]"} text-white rounded-xl font-bold cursor-pointer transition-colors shadow-md`}>
-            {loading ? "Analyzing tiles..." : "Open Camera"}
-            <input type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" disabled={loading} />
-          </label>
-
-          {loading && (
-            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
-              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#c41e3a] rounded-full animate-spin"></div>
-              AI is reading your tiles...
-            </div>
-          )}
-
-          <div className="relative flex items-center gap-3 py-2">
-            <div className="h-px flex-1 bg-gray-200"></div>
-            <span className="text-xs text-gray-400">or</span>
-            <div className="h-px flex-1 bg-gray-200"></div>
-          </div>
-
-          <button
-            onClick={() => { setError(""); setStep("manual"); }}
-            className="w-full py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Enter tiles manually
-          </button>
+      {/* Step 1: Pick tiles */}
+      {step === "tiles" && (
+        <div className="mahjong-card p-5">
+          <TilePicker initialTiles={tiles} onConfirm={(t) => { setTiles(t); setStep("details"); }} />
         </div>
       )}
 
-      {/* Step 2: Confirm tiles from AI */}
-      {step === "confirm" && (
-        <div className="mahjong-card p-5 space-y-4">
-          <p className="font-bold text-sm text-gray-500 uppercase tracking-wider">AI Detected Tiles:</p>
-          <HandDisplay tiles={tiles} />
-
-          {validation && !validation.valid && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">
-              <p className="font-bold mb-1">Not a valid winning hand</p>
-              <p>{validation.reason}</p>
-            </div>
-          )}
-          {validation?.valid && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm font-medium">
-              Valid winning hand!
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setStep("details")}
-              disabled={!validation?.valid}
-              className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm disabled:bg-gray-300 transition-colors"
-            >
-              Looks correct
-            </button>
-            <button
-              onClick={() => setStep("manual")}
-              className="py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-sm transition-colors"
-            >
-              Fix tiles
-            </button>
-          </div>
-          <button onClick={resetToPhoto} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-            Retake photo
-          </button>
-        </div>
-      )}
-
-      {/* Step 2b: Manual tile picker */}
-      {step === "manual" && (
-        <div className="space-y-3">
-          <div className="mahjong-card p-5">
-            <TilePicker initialTiles={tiles} onConfirm={(t) => { setTiles(t); setStep("details"); }} />
-          </div>
-          <button onClick={resetToPhoto} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-            ← Back to camera
-          </button>
-        </div>
-      )}
-
-      {/* Step 3: Win details — simplified */}
+      {/* Step 2: Win details */}
       {step === "details" && (
         <div className="space-y-4">
           <div className="mahjong-card p-4">
@@ -255,7 +142,6 @@ export default function SubmitWin() {
                 <span className="text-xs text-red-500 font-medium">Required</span>
               )}
             </div>
-            {/* Show player selector only if not auto-detected or user wants to change */}
             {!winner ? (
               <div className="space-y-2 mt-3">
                 {event.players.map((p) => (
@@ -278,7 +164,7 @@ export default function SubmitWin() {
             )}
           </div>
 
-          {/* The one essential question: how did you win? */}
+          {/* How did you win? */}
           <div className="mahjong-card p-4 space-y-3">
             <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">How did you win?</p>
 
@@ -307,7 +193,6 @@ export default function SubmitWin() {
               </button>
             </div>
 
-            {/* Explain the difference */}
             <div className="bg-gray-50 rounded-lg px-3 py-2">
               <p className="text-[10px] text-gray-500">
                 {winType === "zimo"
@@ -318,7 +203,7 @@ export default function SubmitWin() {
             </div>
           </div>
 
-          {/* Who discarded? — only shown for dianpao */}
+          {/* Who discarded? */}
           {winType === "dianpao" && (
             <div className="mahjong-card p-4 space-y-2">
               <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Who threw the winning tile?</p>
@@ -340,7 +225,7 @@ export default function SubmitWin() {
             </div>
           )}
 
-          {/* Advanced / rare bonuses — hidden by default */}
+          {/* Rare bonuses */}
           <div className="mahjong-card overflow-hidden">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
@@ -386,13 +271,13 @@ export default function SubmitWin() {
             {loading ? "Submitting..." : "Submit Win"}
           </button>
 
-          <button onClick={() => setStep("confirm")} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
+          <button onClick={resetToTiles} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
             ← Back to tiles
           </button>
         </div>
       )}
 
-      {/* Step 4: Result */}
+      {/* Step 3: Result */}
       {step === "result" && result && (
         <div className="mahjong-card p-5 space-y-4 text-center">
           <div className="text-4xl">🎉</div>
@@ -405,6 +290,12 @@ export default function SubmitWin() {
                 <span className="font-bold text-[#c41e3a]">+{f.value} fan</span>
               </div>
             ))}
+            {result.fan.length === 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">平胡 <span className="text-gray-400">(Basic Win)</span></span>
+                <span className="font-bold text-gray-400">0 fan</span>
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-4">
