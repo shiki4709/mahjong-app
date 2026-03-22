@@ -82,6 +82,8 @@ export interface PointLedger {
   losses: number;
   biggestFan: number;
   handsPlayed: number;
+  gamesPlayed: number;   // completed rounds participated in
+  avgPointsPerGame: number;
 }
 
 export interface PersonalityProfile {

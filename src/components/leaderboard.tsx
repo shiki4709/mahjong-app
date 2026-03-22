@@ -8,19 +8,20 @@ const RANK_STYLES = [
 ];
 
 export function Leaderboard({ ledgers, eventId }: { ledgers: PointLedger[]; eventId?: string }) {
-  const sorted = [...ledgers].sort((a, b) => b.totalPoints - a.totalPoints || b.wins - a.wins);
+  // Already sorted by avgPointsPerGame from computeLedger
+  const sorted = ledgers;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b-2 border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
+          <tr className="border-b-2 border-gray-200 text-gray-500 text-[10px] uppercase tracking-wider">
             <th className="py-2 px-1 text-left">#</th>
-            <th className="py-2 px-2 text-left">Player</th>
-            <th className="py-2 px-2 text-right">Pts</th>
-            <th className="py-2 px-2 text-right">W</th>
-            <th className="py-2 px-2 text-right">L</th>
-            <th className="py-2 px-2 text-right">Best</th>
+            <th className="py-2 px-1 text-left">Player</th>
+            <th className="py-2 px-1 text-right">Avg</th>
+            <th className="py-2 px-1 text-right">Pts</th>
+            <th className="py-2 px-1 text-right">G</th>
+            <th className="py-2 px-1 text-right">W</th>
           </tr>
         </thead>
         <tbody>
@@ -32,29 +33,30 @@ export function Leaderboard({ ledgers, eventId }: { ledgers: PointLedger[]; even
               <td className="py-2.5 px-1 text-center">
                 {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span className="text-gray-400">{i + 1}</span>}
               </td>
-              <td className="py-2.5 px-2">
+              <td className="py-2.5 px-1">
                 {eventId ? (
                   <Link href={`/event/${eventId}/player/${ledger.playerId}`} className="hover:text-[#c41e3a] transition-colors">
                     {ledger.playerName}
                   </Link>
                 ) : ledger.playerName}
               </td>
-              <td className={`py-2.5 px-2 text-right font-mono font-bold ${ledger.totalPoints > 0 ? "text-emerald-600" : ledger.totalPoints < 0 ? "text-red-600" : "text-gray-400"}`}>
-                {ledger.totalPoints > 0 ? "+" : ""}{ledger.totalPoints}
-              </td>
-              <td className="py-2.5 px-2 text-right text-gray-600">{ledger.wins}</td>
-              <td className="py-2.5 px-2 text-right text-gray-600">{ledger.losses}</td>
-              <td className="py-2.5 px-2 text-right">
-                {ledger.biggestFan ? (
-                  <span className="text-amber-600 font-medium">{ledger.biggestFan}番</span>
+              <td className={`py-2.5 px-1 text-right font-mono font-bold text-xs ${ledger.avgPointsPerGame > 0 ? "text-emerald-600" : ledger.avgPointsPerGame < 0 ? "text-red-600" : "text-gray-400"}`}>
+                {ledger.gamesPlayed > 0 ? (
+                  <>{ledger.avgPointsPerGame > 0 ? "+" : ""}{ledger.avgPointsPerGame}</>
                 ) : (
                   <span className="text-gray-300">-</span>
                 )}
               </td>
+              <td className={`py-2.5 px-1 text-right font-mono text-xs ${ledger.totalPoints > 0 ? "text-emerald-600" : ledger.totalPoints < 0 ? "text-red-600" : "text-gray-400"}`}>
+                {ledger.totalPoints > 0 ? "+" : ""}{ledger.totalPoints}
+              </td>
+              <td className="py-2.5 px-1 text-right text-gray-600 text-xs">{ledger.gamesPlayed}</td>
+              <td className="py-2.5 px-1 text-right text-gray-600 text-xs">{ledger.wins}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="text-[9px] text-gray-400 mt-2 text-right">Avg = avg points per game &middot; G = games played &middot; W = wins</p>
     </div>
   );
 }
