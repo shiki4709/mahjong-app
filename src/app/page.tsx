@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
   const router = useRouter();
@@ -162,6 +163,13 @@ export default function Home() {
               I'm a Player
               <span className="block text-xs font-normal text-gray-400 mt-0.5">Join a table with a code</span>
             </button>
+            <Link
+              href="/how-to-play"
+              className="w-full py-3 border border-gray-200 text-gray-600 rounded-2xl font-medium text-sm text-center block hover:bg-gray-50 transition-colors"
+            >
+              📖 How to Play
+              <span className="block text-xs font-normal text-gray-400 mt-0.5">New to Mahjong? Start here</span>
+            </Link>
           </div>
         </>
       )}

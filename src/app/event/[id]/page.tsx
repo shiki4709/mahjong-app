@@ -73,6 +73,12 @@ export default function EventDashboard() {
           <p className="text-sm text-gray-600">
             <span className="font-bold text-gray-800">Hi {myPlayer.name}!</span> When you win a hand, tap <span className="font-bold text-[#c41e3a]">我胡了!</span> below to snap a photo. The app calculates your score automatically.
           </p>
+          <Link
+            href="/how-to-play"
+            className="inline-block mt-3 text-xs text-[#c41e3a] font-medium hover:underline"
+          >
+            📖 New to Mahjong? Learn how to play →
+          </Link>
         </div>
       )}
 
