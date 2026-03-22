@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { MahjongEvent } from "@/lib/types";
 import Link from "next/link";
 import { TileDisplay } from "@/components/tile";
@@ -45,7 +45,9 @@ const KONG_INFO: Record<KongType, {
 export default function KongPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
+  const playerParam = searchParams.get("player");
   const [event, setEvent] = useState<MahjongEvent | null>(null);
   const [step, setStep] = useState<"who" | "type" | "payer" | "confirm">("who");
   const [playerId, setPlayerId] = useState("");
@@ -58,12 +60,11 @@ export default function KongPage() {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
   }, [eventId]);
 
-  // Auto-detect player from session/localStorage
+  // Auto-detect player: URL param > localStorage
   useEffect(() => {
-    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
-      || localStorage.getItem(`mahjong-player-${eventId}`);
+    const saved = playerParam || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) setPlayerId(saved);
-  }, [eventId]);
+  }, [eventId, playerParam]);
 
   async function submitKong() {
     if (!kongType) return;

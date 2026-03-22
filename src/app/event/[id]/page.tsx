@@ -13,21 +13,23 @@ export default function EventDashboard() {
   const searchParams = useSearchParams();
   const eventId = params.id as string;
   const pin = searchParams.get("pin");
+  const playerParam = searchParams.get("player");
   const isHost = !!pin;
 
   const [event, setEvent] = useState<MahjongEvent | null>(null);
   const [showQR, setShowQR] = useState<string | null>(null); // table code to show QR for
 
-  // Player identity from localStorage
+  // Player identity: URL param (tab-specific) > localStorage (fallback)
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Prefer sessionStorage (tab-specific) so multiple players on
-    // the same device don't overwrite each other's identity
-    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
-      || localStorage.getItem(`mahjong-player-${eventId}`);
-    if (saved) setMyPlayerId(saved);
-  }, [eventId]);
+    const saved = playerParam || localStorage.getItem(`mahjong-player-${eventId}`);
+    if (saved) {
+      setMyPlayerId(saved);
+      // Persist to localStorage so links from this page carry identity
+      localStorage.setItem(`mahjong-player-${eventId}`, saved);
+    }
+  }, [eventId, playerParam]);
 
   const fetchEvent = useCallback(async () => {
     const res = await fetch(`/api/events/${eventId}${pin ? `?pin=${pin}` : ""}`);
@@ -88,20 +90,44 @@ export default function EventDashboard() {
       {/* Action buttons */}
       <div className="flex gap-3">
         <Link
-          href={`/event/${eventId}/submit`}
+          href={`/event/${eventId}/submit${myPlayerId ? `?player=${myPlayerId}` : ""}`}
           className="flex-1 py-4 bg-[#c41e3a] hover:bg-[#a01830] text-white rounded-2xl font-bold text-center text-lg shadow-lg shadow-red-900/25 transition-colors"
         >
           我胡了!
           <span className="block text-xs font-normal text-red-200 mt-0.5">I Won</span>
         </Link>
         <Link
-          href={`/event/${eventId}/kong`}
+          href={`/event/${eventId}/kong${myPlayerId ? `?player=${myPlayerId}` : ""}`}
           className="py-4 px-6 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-center text-lg shadow-lg shadow-amber-900/20 transition-colors"
         >
           杠
           <span className="block text-xs font-normal text-amber-100 mt-0.5">Kong</span>
         </Link>
       </div>
+
+      {/* Round complete banner */}
+      {(() => {
+        const activeRound = event.rounds.find((r) => r.status === "completed" && r.wins.length >= 3);
+        const lastRound = event.rounds[event.rounds.length - 1];
+        if (lastRound && lastRound.status === "completed") {
+          const winners = lastRound.wins.map((w) => event.players.find((p) => p.id === w.winnerId)?.name).filter(Boolean);
+          const loser = event.players.find((p) =>
+            lastRound.handsPlayed.includes(p.id) && !lastRound.wins.some((w) => w.winnerId === p.id)
+          );
+          return (
+            <div className="mahjong-card p-5 border-l-4 border-amber-500 text-center space-y-2">
+              <div className="text-3xl">🎊</div>
+              <p className="font-bold text-gray-800">Round Complete!</p>
+              <p className="text-xs text-gray-500">
+                {winners.join(", ")} won this round
+                {loser && <> — <span className="text-red-500 font-bold">{loser.name}</span> didn&apos;t make it!</>}
+              </p>
+              <p className="text-[10px] text-gray-400">Tap 我胡了! or 杠 to start the next round</p>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Leaderboard */}
       <div className="mahjong-card p-4">

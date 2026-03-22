@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Tile, MahjongEvent, FanBreakdown } from "@/lib/types";
 import { HandDisplay } from "@/components/hand-display";
 import { TilePicker } from "@/components/tile-picker";
@@ -11,7 +11,9 @@ type Step = "photo" | "confirm" | "manual" | "details" | "result";
 export default function SubmitWin() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
+  const playerParam = searchParams.get("player");
 
   const [event, setEvent] = useState<MahjongEvent | null>(null);
   const [step, setStep] = useState<Step>("photo");
@@ -36,12 +38,11 @@ export default function SubmitWin() {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
   }, [eventId]);
 
-  // Auto-set winner from session/localStorage
+  // Auto-set winner: URL param > localStorage
   useEffect(() => {
-    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
-      || localStorage.getItem(`mahjong-player-${eventId}`);
+    const saved = playerParam || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) setWinnerId(saved);
-  }, [eventId]);
+  }, [eventId, playerParam]);
 
   function resetToPhoto() {
     setStep("photo");

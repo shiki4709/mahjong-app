@@ -91,18 +91,14 @@ export default function Home() {
       return;
     }
 
-    // Save player info locally (use session-unique key so multiple
-    // players on the same browser/device don't overwrite each other)
+    // Save player info — use URL param as primary identity so each
+    // tab on the same device keeps its own player
     const player = joinData.player;
-    const sessionKey = `mahjong-session-${Date.now()}-${player.id}`;
-    sessionStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
-    sessionStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
-    // Also save to localStorage as fallback for page refreshes
     localStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
     localStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
 
     setLoading(false);
-    router.push(`/event/${data.eventId}`);
+    router.push(`/event/${data.eventId}?player=${player.id}`);
   }
 
   function generateTableCode(): string {
