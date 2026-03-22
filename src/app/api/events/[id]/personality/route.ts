@@ -10,11 +10,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const ledgers = computeLedger(event);
-  const profiles: PersonalityProfile[] = [];
 
+  // Check if requesting a single player profile
+  let body: { playerId?: string } = {};
+  try {
+    body = await req.json();
+  } catch {
+    // No body — generate all profiles (legacy behavior)
+  }
+
+  if (body.playerId) {
+    // Single player profile
+    const ledger = ledgers.find((l) => l.playerId === body.playerId);
+    if (!ledger) return NextResponse.json({ error: "Player not found" }, { status: 404 });
+
+    const playerWins = event.rounds.flatMap((r) => r.wins.filter((w) => w.winnerId === body.playerId));
+    const profile = await generatePersonality(ledger.playerName.replace(" (left)", ""), ledger, playerWins);
+    return NextResponse.json({ profile, ledger });
+  }
+
+  // All profiles (for end-of-event summary)
+  const profiles: PersonalityProfile[] = [];
   for (const ledger of ledgers) {
     const playerWins = event.rounds.flatMap((r) => r.wins.filter((w) => w.winnerId === ledger.playerId));
-    const profile = await generatePersonality(ledger.playerName, ledger, playerWins);
+    const profile = await generatePersonality(ledger.playerName.replace(" (left)", ""), ledger, playerWins);
     profiles.push(profile);
   }
 

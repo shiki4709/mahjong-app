@@ -54,6 +54,11 @@ export default function EventDashboard() {
   const ledgers = computeLedger(event);
   const myPlayer = event.players.find(p => p.id === myPlayerId);
   const myTable = event.tables.find(t => t.id === myPlayer?.tableId);
+  const myLedger = ledgers.find(l => l.playerId === myPlayerId);
+
+  // Filter leaderboard to just this player's table
+  const tablePlayerIds = new Set(myTable?.playerIds || []);
+  const tableLedgers = ledgers.filter(l => tablePlayerIds.has(l.playerId));
 
   return (
     <div className="space-y-5">
@@ -134,21 +139,99 @@ export default function EventDashboard() {
         return null;
       })()}
 
-      {/* Leaderboard */}
-      <div className="mahjong-card p-4">
-        <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-          <span className="w-1 h-5 bg-[#d4a017] rounded-full inline-block"></span>
-          Leaderboard
-        </h2>
-        {ledgers.length > 0 ? (
-          <Leaderboard ledgers={ledgers} eventId={eventId} />
-        ) : (
-          <div className="text-center py-8 text-gray-400">
-            <div className="text-3xl mb-2">🀄</div>
-            <p className="text-sm">No games played yet</p>
+      {/* Player stats card — show personal ranking for non-host */}
+      {!isHost && myPlayer && myLedger && myLedger.gamesPlayed > 0 && (
+        <div className="mahjong-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider">Your Stats</h2>
+            <span className="text-xs text-gray-400">
+              #{ledgers.findIndex((l) => l.playerId === myPlayerId) + 1} of {ledgers.length} overall
+            </span>
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <p className={`text-lg font-bold ${myLedger.avgPointsPerGame > 0 ? "text-emerald-600" : myLedger.avgPointsPerGame < 0 ? "text-red-600" : "text-gray-400"}`}>
+                {myLedger.avgPointsPerGame > 0 ? "+" : ""}{myLedger.avgPointsPerGame}
+              </p>
+              <p className="text-[10px] text-gray-500">Avg/Game</p>
+            </div>
+            <div>
+              <p className={`text-lg font-bold ${myLedger.totalPoints > 0 ? "text-emerald-600" : myLedger.totalPoints < 0 ? "text-red-600" : "text-gray-400"}`}>
+                {myLedger.totalPoints > 0 ? "+" : ""}{myLedger.totalPoints}
+              </p>
+              <p className="text-[10px] text-gray-500">Total</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-800">{myLedger.gamesPlayed}</p>
+              <p className="text-[10px] text-gray-500">Games</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-amber-600">{myLedger.wins}</p>
+              <p className="text-[10px] text-gray-500">Wins</p>
+            </div>
+          </div>
+          <Link
+            href={`/event/${eventId}/player/${myPlayerId}`}
+            className="block text-center text-xs text-[#c41e3a] font-medium hover:underline"
+          >
+            🔮 View personality & win history →
+          </Link>
+        </div>
+      )}
+
+      {/* Table leaderboard for players (only their table) */}
+      {!isHost && myTable && (
+        <div className="mahjong-card p-4">
+          <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
+            <span className="w-1 h-5 bg-[#d4a017] rounded-full inline-block"></span>
+            {myTable.name} Leaderboard
+          </h2>
+          {tableLedgers.length > 0 ? (
+            <Leaderboard ledgers={tableLedgers} eventId={eventId} />
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <div className="text-3xl mb-2">🀄</div>
+              <p className="text-sm">No games played yet</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Full leaderboard for host */}
+      {isHost && (
+        <div className="mahjong-card p-4">
+          <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
+            <span className="w-1 h-5 bg-[#d4a017] rounded-full inline-block"></span>
+            Event Leaderboard
+          </h2>
+          {ledgers.length > 0 ? (
+            <Leaderboard ledgers={ledgers} eventId={eventId} />
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <div className="text-3xl mb-2">🀄</div>
+              <p className="text-sm">No games played yet</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No player context — show full leaderboard */}
+      {!isHost && !myPlayer && (
+        <div className="mahjong-card p-4">
+          <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
+            <span className="w-1 h-5 bg-[#d4a017] rounded-full inline-block"></span>
+            Leaderboard
+          </h2>
+          {ledgers.length > 0 ? (
+            <Leaderboard ledgers={ledgers} eventId={eventId} />
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <div className="text-3xl mb-2">🀄</div>
+              <p className="text-sm">No games played yet</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Table view for players */}
       {!isHost && myTable && (
