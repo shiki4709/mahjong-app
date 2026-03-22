@@ -3,6 +3,7 @@ import { MahjongEvent, PointLedger } from "./types";
 export function computeLedger(event: MahjongEvent): PointLedger[] {
   const ledgers = new Map<string, PointLedger>();
 
+  // Active players
   for (const player of event.players) {
     ledgers.set(player.id, {
       playerId: player.id,
@@ -13,6 +14,21 @@ export function computeLedger(event: MahjongEvent): PointLedger[] {
       biggestFan: 0,
       handsPlayed: 0,
     });
+  }
+
+  // Departed players — their scores stay on the leaderboard
+  for (const dp of event.departedPlayers || []) {
+    if (!ledgers.has(dp.id)) {
+      ledgers.set(dp.id, {
+        playerId: dp.id,
+        playerName: `${dp.name} (left)`,
+        totalPoints: 0,
+        wins: 0,
+        losses: 0,
+        biggestFan: 0,
+        handsPlayed: 0,
+      });
+    }
   }
 
   for (const round of event.rounds) {

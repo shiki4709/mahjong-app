@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Create player and add to table
-  const player = { id: nanoid(6), name: playerName.trim(), tableId: table.id };
+  const player = { id: nanoid(6), name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
   event.players.push(player);
   table.playerIds.push(player.id);
   await saveEvent(event);

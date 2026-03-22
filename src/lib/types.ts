@@ -45,6 +45,7 @@ export interface Player {
   id: string;
   name: string;
   tableId: string;
+  joinedAt?: number; // timestamp when joined, used for score calculation
 }
 
 export interface Table {
@@ -54,12 +55,19 @@ export interface Table {
   playerIds: string[];
 }
 
+export interface DepartedPlayer {
+  id: string;
+  name: string;
+  departedAt: number;
+}
+
 export interface MahjongEvent {
   id: string;
   name: string;
   hostPin: string;
   baseScore: number;
   players: Player[];
+  departedPlayers?: DepartedPlayer[];
   tables: Table[];
   rounds: Round[];
   status: "active" | "finished";
