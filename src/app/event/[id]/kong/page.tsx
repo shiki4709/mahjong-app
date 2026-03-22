@@ -6,7 +6,7 @@ import { MahjongEvent } from "@/lib/types";
 import Link from "next/link";
 import { TileDisplay } from "@/components/tile";
 
-type KongType = "ming" | "an" | "bu";
+type KongType = "ming" | "an";
 
 const KONG_INFO: Record<KongType, {
   name: string;
@@ -31,14 +31,6 @@ const KONG_INFO: Record<KongType, {
     example: "You drew all 4 tiles from the wall yourself",
     payment: "All 3 other players pay you (2× base each)",
     icon: "🤫",
-  },
-  bu: {
-    name: "补杠",
-    nameEn: "Added Kong",
-    desc: "You already claimed a triplet (碰) earlier, then drew the 4th matching tile — upgrade it to a kong.",
-    example: "You 碰'd 3 tiles earlier, then drew the 4th",
-    payment: "All 3 other players pay you",
-    icon: "⬆️",
   },
 };
 
@@ -177,7 +169,7 @@ export default function KongPage() {
                 </p>
               </div>
 
-              {(["ming", "an", "bu"] as KongType[]).map((type) => {
+              {(["ming", "an"] as KongType[]).map((type) => {
                 const info = KONG_INFO[type];
                 return (
                   <button
@@ -232,11 +224,6 @@ export default function KongPage() {
                   The player who threw the tile that completed your Kong pays the bonus.
                 </p>
               )}
-              {kongType === "bu" && (
-                <p className="text-xs text-gray-500">
-                  Select any other player to confirm. All remaining players will be charged.
-                </p>
-              )}
               <div className="space-y-2">
                 {event.players.filter((p) => p.id !== playerId).map((p) => (
                   <button
@@ -285,7 +272,7 @@ export default function KongPage() {
                   </div>
                   {kongType !== "an" && paidById && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">{kongType === "ming" ? "Discarder" : "Confirmed by"}</span>
+                      <span className="text-gray-500">Discarder</span>
                       <span className="font-bold text-gray-800">{event.players.find((p) => p.id === paidById)?.name}</span>
                     </div>
                   )}
@@ -360,10 +347,6 @@ function HelpCard() {
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="font-bold text-gray-800">🤫 暗杠 Concealed Kong</p>
               <p className="mt-0.5">You drew all 4 yourself → biggest bonus, others don&apos;t see the tiles</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="font-bold text-gray-800">⬆️ 补杠 Added Kong</p>
-              <p className="mt-0.5">You claimed a triplet (碰) earlier, then drew the 4th tile → upgrade!</p>
             </div>
           </div>
         </div>

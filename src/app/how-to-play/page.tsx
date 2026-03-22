@@ -724,7 +724,6 @@ function StepScoring() {
           {[
             { name: "明杠 Open", desc: "Claimed from discard → discarder pays 1× base" },
             { name: "暗杠 Concealed", desc: "Drew all 4 yourself → all 3 pay 2× base each" },
-            { name: "补杠 Added", desc: "Upgrade a triplet → all 3 pay 1× base each" },
           ].map((k) => (
             <div key={k.name} className="flex gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
               <span className="font-bold text-gray-800 shrink-0">{k.name}</span>
