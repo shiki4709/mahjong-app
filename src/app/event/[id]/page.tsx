@@ -186,7 +186,7 @@ export default function EventDashboard() {
             href={`/event/${eventId}/player/${myPlayerId}${myPlayerId ? `?player=${myPlayerId}` : ""}`}
             className="block text-center text-xs text-[#c41e3a] font-medium hover:underline"
           >
-            🔮 View personality & win history →
+            View win history →
           </Link>
         </div>
       )}
