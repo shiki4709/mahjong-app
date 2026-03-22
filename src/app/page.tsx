@@ -91,8 +91,13 @@ export default function Home() {
       return;
     }
 
-    // Save player info locally
+    // Save player info locally (use session-unique key so multiple
+    // players on the same browser/device don't overwrite each other)
     const player = joinData.player;
+    const sessionKey = `mahjong-session-${Date.now()}-${player.id}`;
+    sessionStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
+    sessionStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
+    // Also save to localStorage as fallback for page refreshes
     localStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
     localStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
 

@@ -58,9 +58,10 @@ export default function KongPage() {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
   }, [eventId]);
 
-  // Auto-detect player from localStorage
+  // Auto-detect player from session/localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`mahjong-player-${eventId}`);
+    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
+      || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) setPlayerId(saved);
   }, [eventId]);
 

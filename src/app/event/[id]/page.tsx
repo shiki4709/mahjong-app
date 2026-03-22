@@ -22,7 +22,10 @@ export default function EventDashboard() {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`mahjong-player-${eventId}`);
+    // Prefer sessionStorage (tab-specific) so multiple players on
+    // the same device don't overwrite each other's identity
+    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
+      || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) setMyPlayerId(saved);
   }, [eventId]);
 

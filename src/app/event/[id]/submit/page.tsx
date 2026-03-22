@@ -36,9 +36,10 @@ export default function SubmitWin() {
     fetch(`/api/events/${eventId}`).then((r) => r.json()).then((d) => setEvent(d.event));
   }, [eventId]);
 
-  // Auto-set winner from localStorage
+  // Auto-set winner from session/localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(`mahjong-player-${eventId}`);
+    const saved = sessionStorage.getItem(`mahjong-player-${eventId}`)
+      || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) setWinnerId(saved);
   }, [eventId]);
 
