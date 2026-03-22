@@ -41,7 +41,7 @@ export default function KongPage() {
   const eventId = params.id as string;
   const playerParam = searchParams.get("player");
   const [event, setEvent] = useState<MahjongEvent | null>(null);
-  const [step, setStep] = useState<"who" | "type" | "payer" | "confirm">("who");
+  const [step, setStep] = useState<"type" | "payer" | "confirm">("type");
   const [playerId, setPlayerId] = useState("");
   const [kongType, setKongType] = useState<KongType | null>(null);
   const [paidById, setPaidById] = useState("");
@@ -123,8 +123,8 @@ export default function KongPage() {
 
           {/* Step indicator */}
           <div className="flex gap-1 px-1">
-            {["Who", "Type", kongType === "ming" ? "Payer" : null, "Confirm"].filter(Boolean).map((label, i) => {
-              const stepIndex = step === "who" ? 0 : step === "type" ? 1 : step === "payer" ? 2 : kongType === "ming" ? 3 : 2;
+            {["Type", kongType === "ming" ? "Who threw?" : null, "Confirm"].filter(Boolean).map((label, i) => {
+              const stepIndex = step === "type" ? 0 : step === "payer" ? 1 : kongType === "ming" ? 2 : 1;
               return (
                 <div key={i} className="flex-1">
                   <div className={`h-1 rounded-full ${i <= stepIndex ? "bg-amber-500" : "bg-gray-200"}`} />
@@ -134,38 +134,12 @@ export default function KongPage() {
             })}
           </div>
 
-          {/* Step: Who declared? */}
-          {step === "who" && (
-            <div className="mahjong-card p-5 space-y-3">
-              <h2 className="font-bold text-sm flex items-center gap-2">
-                <span className="w-1 h-5 bg-amber-500 rounded-full inline-block" />
-                Who declared the Kong?
-              </h2>
-              <div className="space-y-2">
-                {event.players.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setPlayerId(p.id); setStep("type"); }}
-                    className={`w-full py-3 px-4 rounded-xl text-left text-sm font-medium transition-colors ${
-                      playerId === p.id
-                        ? "bg-amber-500 text-white"
-                        : "bg-gray-50 hover:bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {p.name}
-                    {p.id === playerId && <span className="text-amber-200 text-xs ml-2">(you)</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Step: Kong type */}
           {step === "type" && (
             <div className="space-y-3">
               <div className="mahjong-card p-4 border-l-4 border-amber-500">
                 <p className="text-sm text-gray-600">
-                  <span className="font-bold text-gray-800">{player?.name}</span> is declaring a Kong. What kind?
+                  <span className="font-bold text-gray-800">{player?.name}</span>, what kind of Kong?
                 </p>
               </div>
 
@@ -203,12 +177,6 @@ export default function KongPage() {
                 );
               })}
 
-              <button
-                onClick={() => setStep("who")}
-                className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                ← Change player
-              </button>
             </div>
           )}
 
