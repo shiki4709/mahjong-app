@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { MahjongEvent, WinResult, PersonalityProfile, PointLedger } from "@/lib/types";
 import { computeLedger } from "@/lib/ledger";
 import { HandDisplay } from "@/components/hand-display";
@@ -10,8 +10,10 @@ import Link from "next/link";
 
 export default function PlayerDetail() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
   const playerId = params.playerId as string;
+  const myPlayerId = searchParams.get("player");
   const [event, setEvent] = useState<MahjongEvent | null>(null);
   const [profile, setProfile] = useState<PersonalityProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -67,7 +69,7 @@ export default function PlayerDetail() {
     <div className="space-y-5">
       {/* Header */}
       <div className="mahjong-header -mx-4 px-6 pt-8 pb-6 text-white rounded-b-3xl shadow-lg">
-        <Link href={`/event/${eventId}`} className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-3 transition-colors">
+        <Link href={`/event/${eventId}${myPlayerId ? `?player=${myPlayerId}` : ""}`} className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-3 transition-colors">
           ← Back to event
         </Link>
         <div className="text-center">

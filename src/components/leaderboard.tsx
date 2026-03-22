@@ -7,7 +7,7 @@ const RANK_STYLES = [
   "bg-orange-50/50",
 ];
 
-export function Leaderboard({ ledgers, eventId }: { ledgers: PointLedger[]; eventId?: string }) {
+export function Leaderboard({ ledgers, eventId, myPlayerId }: { ledgers: PointLedger[]; eventId?: string; myPlayerId?: string | null }) {
   // Already sorted by avgPointsPerGame from computeLedger
   const sorted = ledgers;
 
@@ -35,7 +35,7 @@ export function Leaderboard({ ledgers, eventId }: { ledgers: PointLedger[]; even
               </td>
               <td className="py-2.5 px-1">
                 {eventId ? (
-                  <Link href={`/event/${eventId}/player/${ledger.playerId}`} className="hover:text-[#c41e3a] transition-colors">
+                  <Link href={`/event/${eventId}/player/${ledger.playerId}${myPlayerId ? `?player=${myPlayerId}` : ""}`} className="hover:text-[#c41e3a] transition-colors">
                     {ledger.playerName}
                   </Link>
                 ) : ledger.playerName}

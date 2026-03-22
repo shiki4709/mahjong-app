@@ -120,7 +120,7 @@ export default function SubmitWin() {
       {/* Header */}
       <div className="mahjong-header -mx-4 px-6 pt-6 pb-5 text-white rounded-b-3xl shadow-lg">
         <div className="flex items-center gap-3">
-          <button onClick={() => step === "photo" ? router.push(`/event/${eventId}`) : resetToPhoto()} className="text-white/70 hover:text-white text-sm">
+          <button onClick={() => step === "photo" ? router.push(`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`) : resetToPhoto()} className="text-white/70 hover:text-white text-sm">
             ← {step === "photo" ? "Back" : "Start Over"}
           </button>
           <div className="flex-1 text-center">
@@ -413,7 +413,7 @@ export default function SubmitWin() {
           </div>
 
           <button
-            onClick={() => router.push(`/event/${eventId}`)}
+            onClick={() => router.push(`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`)}
             className="w-full py-3.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold text-sm transition-colors"
           >
             Back to Leaderboard

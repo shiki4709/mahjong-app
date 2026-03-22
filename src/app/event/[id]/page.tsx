@@ -179,7 +179,7 @@ export default function EventDashboard() {
             </div>
           </div>
           <Link
-            href={`/event/${eventId}/player/${myPlayerId}`}
+            href={`/event/${eventId}/player/${myPlayerId}${myPlayerId ? `?player=${myPlayerId}` : ""}`}
             className="block text-center text-xs text-[#c41e3a] font-medium hover:underline"
           >
             🔮 View personality & win history →
@@ -195,7 +195,7 @@ export default function EventDashboard() {
             {myTable.name} Leaderboard
           </h2>
           {tableLedgers.length > 0 ? (
-            <Leaderboard ledgers={tableLedgers} eventId={eventId} />
+            <Leaderboard ledgers={tableLedgers} eventId={eventId} myPlayerId={myPlayerId} />
           ) : (
             <div className="text-center py-8 text-gray-400">
               <div className="text-3xl mb-2">🀄</div>
@@ -213,7 +213,7 @@ export default function EventDashboard() {
             Event Leaderboard
           </h2>
           {ledgers.length > 0 ? (
-            <Leaderboard ledgers={ledgers} eventId={eventId} />
+            <Leaderboard ledgers={ledgers} eventId={eventId} myPlayerId={myPlayerId} />
           ) : (
             <div className="text-center py-8 text-gray-400">
               <div className="text-3xl mb-2">🀄</div>
@@ -231,7 +231,7 @@ export default function EventDashboard() {
             Leaderboard
           </h2>
           {ledgers.length > 0 ? (
-            <Leaderboard ledgers={ledgers} eventId={eventId} />
+            <Leaderboard ledgers={ledgers} eventId={eventId} myPlayerId={myPlayerId} />
           ) : (
             <div className="text-center py-8 text-gray-400">
               <div className="text-3xl mb-2">🀄</div>

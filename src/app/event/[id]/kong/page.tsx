@@ -87,7 +87,7 @@ export default function KongPage() {
     });
     setLoading(false);
     setSuccess(true);
-    setTimeout(() => router.push(`/event/${eventId}`), 1500);
+    setTimeout(() => router.push(`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`), 1500);
   }
 
   if (!event) {
@@ -106,7 +106,7 @@ export default function KongPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="mahjong-header -mx-4 px-6 pt-8 pb-6 text-white rounded-b-3xl shadow-lg">
-        <Link href={`/event/${eventId}`} className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-3 transition-colors">
+        <Link href={`/event/${eventId}${playerParam ? `?player=${playerParam}` : ""}`} className="text-red-200 hover:text-white text-xs inline-flex items-center gap-1 mb-3 transition-colors">
           ← Back to event
         </Link>
         <div className="text-center">
