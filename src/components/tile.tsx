@@ -110,15 +110,15 @@ const TONG_DOTS: Record<number, TongDot[]> = {
     { x: 0.35, y: 0.82, color: "red" },
     { x: 0.65, y: 0.82, color: "red" },
   ],
-  // 7: Diagonal green + remaining red
+  // 7: 3 green diagonal top-left→bottom-right + 4 red in 2x2 rectangle below
   7: [
-    { x: 0.28, y: 0.15, color: "green" },
-    { x: 0.72, y: 0.15, color: "red" },
-    { x: 0.28, y: 0.42, color: "red" },
-    { x: 0.5, y: 0.42, color: "green" },
-    { x: 0.72, y: 0.42, color: "red" },
-    { x: 0.28, y: 0.70, color: "red" },
-    { x: 0.72, y: 0.70, color: "green" },
+    { x: 0.25, y: 0.12, color: "green" },
+    { x: 0.50, y: 0.24, color: "green" },
+    { x: 0.75, y: 0.36, color: "green" },
+    { x: 0.35, y: 0.58, color: "red" },
+    { x: 0.65, y: 0.58, color: "red" },
+    { x: 0.35, y: 0.82, color: "red" },
+    { x: 0.65, y: 0.82, color: "red" },
   ],
   // 8: 2x4 rectangle (2 columns, 4 rows)
   8: [
