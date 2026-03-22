@@ -17,7 +17,9 @@ export default function EventDashboard() {
   const isHost = !!pin;
 
   const [event, setEvent] = useState<MahjongEvent | null>(null);
-  const [showQR, setShowQR] = useState<string | null>(null); // table code to show QR for
+  const [showQR, setShowQR] = useState<string | null>(null);
+  const [roundDismissed, setRoundDismissed] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   // Player identity: URL param (tab-specific) > localStorage (fallback)
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
@@ -26,7 +28,6 @@ export default function EventDashboard() {
     const saved = playerParam || localStorage.getItem(`mahjong-player-${eventId}`);
     if (saved) {
       setMyPlayerId(saved);
-      // Persist to localStorage so links from this page carry identity
       localStorage.setItem(`mahjong-player-${eventId}`, saved);
     }
   }, [eventId, playerParam]);
@@ -107,22 +108,26 @@ export default function EventDashboard() {
 
       {/* Round complete banner */}
       {(() => {
-        const activeRound = event.rounds.find((r) => r.status === "completed" && r.wins.length >= 3);
         const lastRound = event.rounds[event.rounds.length - 1];
-        if (lastRound && lastRound.status === "completed") {
+        if (lastRound && lastRound.status === "completed" && roundDismissed !== lastRound.id) {
           const winners = lastRound.wins.map((w) => event.players.find((p) => p.id === w.winnerId)?.name).filter(Boolean);
           const loser = event.players.find((p) =>
             lastRound.handsPlayed.includes(p.id) && !lastRound.wins.some((w) => w.winnerId === p.id)
           );
           return (
-            <div className="mahjong-card p-5 border-l-4 border-amber-500 text-center space-y-2">
+            <div className="mahjong-card p-5 border-l-4 border-amber-500 text-center space-y-3">
               <div className="text-3xl">🎊</div>
-              <p className="font-bold text-gray-800">Round Complete!</p>
+              <p className="font-bold text-gray-800">Round {event.rounds.length} Complete!</p>
               <p className="text-xs text-gray-500">
-                {winners.join(", ")} won this round
-                {loser && <> — <span className="text-red-500 font-bold">{loser.name}</span> didn&apos;t make it!</>}
+                {winners.join(", ")} won
+                {loser && <> — <span className="text-red-500 font-bold">{loser.name}</span> didn&apos;t make it 😅</>}
               </p>
-              <p className="text-[10px] text-gray-400">Tap 我胡了! or 杠 to start the next round</p>
+              <button
+                onClick={() => setRoundDismissed(lastRound.id)}
+                className="w-full py-3 bg-[#c41e3a] hover:bg-[#a01830] text-white rounded-xl font-bold text-sm shadow-md shadow-red-900/20 transition-colors"
+              >
+                Ready for Next Round
+              </button>
             </div>
           );
         }
@@ -147,8 +152,8 @@ export default function EventDashboard() {
 
       {/* Table view for players */}
       {!isHost && myTable && (
-        <div className="mahjong-card p-4">
-          <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider mb-2">Your Table: {myTable.name}</h2>
+        <div className="mahjong-card p-4 space-y-3">
+          <h2 className="font-bold text-sm text-gray-500 uppercase tracking-wider">Your Table: {myTable.name}</h2>
           <div className="flex flex-wrap gap-2">
             {myTable.playerIds.map((pid) => {
               const p = event.players.find(pl => pl.id === pid);
@@ -167,6 +172,41 @@ export default function EventDashboard() {
               </span>
             )}
           </div>
+
+          {/* Leave table */}
+          {myPlayer && !showLeaveConfirm && (
+            <button
+              onClick={() => setShowLeaveConfirm(true)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Leave table
+            </button>
+          )}
+          {showLeaveConfirm && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+              <p className="text-xs text-red-700">Leave <span className="font-bold">{myTable.name}</span>? Your scores will be kept but you won&apos;t be able to submit new wins.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    await fetch(`/api/events/${eventId}/players/${myPlayerId}?pin=player-leave`, { method: "DELETE" });
+                    localStorage.removeItem(`mahjong-player-${eventId}`);
+                    setMyPlayerId(null);
+                    setShowLeaveConfirm(false);
+                    window.location.href = "/";
+                  }}
+                  className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+                >
+                  Leave
+                </button>
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Stay
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -202,7 +242,20 @@ export default function EventDashboard() {
                     {table.playerIds.map((pid) => {
                       const p = event.players.find(pl => pl.id === pid);
                       return p ? (
-                        <span key={pid} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-full">{p.name}</span>
+                        <span key={pid} className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                          {p.name}
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Remove ${p.name} from ${table.name}?`)) return;
+                              await fetch(`/api/events/${eventId}/players/${pid}?pin=${pin}`, { method: "DELETE" });
+                              fetchEvent();
+                            }}
+                            className="text-red-400 hover:text-red-600 font-bold leading-none"
+                            title={`Remove ${p.name}`}
+                          >
+                            ×
+                          </button>
+                        </span>
                       ) : null;
                     })}
                   </div>

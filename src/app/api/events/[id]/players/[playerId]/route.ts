@@ -8,7 +8,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const url = new URL(req.url);
   const pin = url.searchParams.get("pin");
-  if (pin !== event.hostPin) {
+
+  // Allow host (with pin) or the player themselves (player-leave)
+  const isHost = pin === event.hostPin;
+  const isSelfLeave = pin === "player-leave";
+
+  if (!isHost && !isSelfLeave) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
