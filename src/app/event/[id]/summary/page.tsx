@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { MahjongEvent, PersonalityProfile, PointLedger } from "@/lib/types";
 import { Leaderboard } from "@/components/leaderboard";
 import { PlayerCard } from "@/components/player-card";
@@ -9,7 +9,9 @@ import Link from "next/link";
 
 export default function SummaryPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = params.id as string;
+  const pin = searchParams.get("pin");
   const [event, setEvent] = useState<MahjongEvent | null>(null);
   const [profiles, setProfiles] = useState<PersonalityProfile[]>([]);
   const [ledgers, setLedgers] = useState<PointLedger[]>([]);
@@ -59,7 +61,7 @@ export default function SummaryPage() {
           </div>
         </>
       )}
-      <Link href={`/event/${eventId}`} className="block text-center text-sm text-gray-500 underline">Back to event</Link>
+      <Link href={`/event/${eventId}${pin ? `?pin=${pin}` : ""}`} className="block text-center text-sm text-gray-500 underline">Back to event</Link>
     </div>
   );
 }
