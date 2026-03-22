@@ -86,15 +86,17 @@ export default function SubmitWin() {
     if (!winnerId) return;
     setLoading(true);
     setError("");
-    const activeRound = event?.rounds.find((r) => r.status === "in_progress");
+    // Find active round for THIS player's table only
+    const winner = event?.players.find((p) => p.id === winnerId);
+    const winnerTableId = winner?.tableId;
+    const activeRound = event?.rounds.find((r) => r.status === "in_progress" && r.tableId === winnerTableId);
     let roundId = activeRound?.id;
     if (!roundId) {
-      const winner = event?.players.find((p) => p.id === winnerId);
-      const tablePlayers = event?.players.filter((p) => p.tableId === winner?.tableId).map((p) => p.id) || [];
+      const tablePlayers = event?.players.filter((p) => p.tableId === winnerTableId).map((p) => p.id) || [];
       const res = await fetch(`/api/events/${eventId}/rounds`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId: winner?.tableId, playerIds: tablePlayers.length > 0 ? tablePlayers : event?.players.map((p) => p.id) }),
+        body: JSON.stringify({ tableId: winnerTableId, playerIds: tablePlayers }),
       });
       const data = await res.json();
       roundId = data.round.id;
@@ -321,7 +323,7 @@ export default function SubmitWin() {
             <div className="mahjong-card p-4 space-y-2">
               <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Who threw the winning tile?</p>
               <div className="space-y-2">
-                {event.players.filter((p) => p.id !== winnerId).map((p) => (
+                {event.players.filter((p) => p.id !== winnerId && p.tableId === winner?.tableId).map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setDiscarderId(p.id)}

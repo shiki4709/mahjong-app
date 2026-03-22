@@ -61,13 +61,17 @@ export default function KongPage() {
   async function submitKong() {
     if (!kongType) return;
     setLoading(true);
-    const activeRound = event?.rounds.find((r) => r.status === "in_progress");
+    // Find active round for THIS player's table only
+    const declarer = event?.players.find((p) => p.id === playerId);
+    const declarerTableId = declarer?.tableId;
+    const activeRound = event?.rounds.find((r) => r.status === "in_progress" && r.tableId === declarerTableId);
     let roundId = activeRound?.id;
     if (!roundId) {
+      const tablePlayers = event?.players.filter((p) => p.tableId === declarerTableId).map((p) => p.id) || [];
       const res = await fetch(`/api/events/${eventId}/rounds`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId: "", playerIds: event?.players.map((p) => p.id) }),
+        body: JSON.stringify({ tableId: declarerTableId, playerIds: tablePlayers }),
       });
       const data = await res.json();
       roundId = data.round.id;
@@ -193,7 +197,7 @@ export default function KongPage() {
                 </p>
               )}
               <div className="space-y-2">
-                {event.players.filter((p) => p.id !== playerId).map((p) => (
+                {event.players.filter((p) => p.id !== playerId && p.tableId === player?.tableId).map((p) => (
                   <button
                     key={p.id}
                     onClick={() => { setPaidById(p.id); setStep("confirm"); }}
