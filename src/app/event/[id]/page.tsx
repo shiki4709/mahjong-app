@@ -20,6 +20,8 @@ export default function EventDashboard() {
   const [showQR, setShowQR] = useState<string | null>(null);
   const [roundDismissed, setRoundDismissed] = useState<string | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showEndRound, setShowEndRound] = useState(false);
+  const [endingRound, setEndingRound] = useState(false);
 
   // Player identity: URL param (tab-specific) > localStorage (fallback)
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
@@ -117,6 +119,64 @@ export default function EventDashboard() {
         </Link>
       </div>
 
+      {/* End round (draw) — only show when there's an active round at this table */}
+      {(() => {
+        const activeRound = !isHost && myTable
+          ? event.rounds.find((r) => r.status === "in_progress" && r.tableId === myTable.id)
+          : event.rounds.find((r) => r.status === "in_progress");
+        if (!activeRound) return null;
+        const winsInRound = activeRound.wins.length;
+        return (
+          <>
+            {!showEndRound ? (
+              <button
+                onClick={() => setShowEndRound(true)}
+                className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                荒庄 End Round (Draw) {winsInRound > 0 && `· ${winsInRound} win${winsInRound > 1 ? "s" : ""} so far`}
+              </button>
+            ) : (
+              <div className="mahjong-card p-4 border-l-4 border-gray-400 space-y-3">
+                <p className="text-sm text-gray-600">
+                  <span className="font-bold text-gray-800">End this round as a draw?</span>
+                  {winsInRound === 0 && " No one won — tiles ran out."}
+                  {winsInRound === 1 && " Only 1 player won this round."}
+                  {winsInRound === 2 && " 2 players won — 1 couldn't finish."}
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  Points from wins already recorded this round are kept. The round just ends early.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      setEndingRound(true);
+                      await fetch(`/api/events/${eventId}/rounds/${activeRound.id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: "draw" }),
+                      });
+                      setEndingRound(false);
+                      setShowEndRound(false);
+                      fetchEvent();
+                    }}
+                    disabled={endingRound}
+                    className="flex-1 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-xs font-bold transition-colors disabled:bg-gray-300"
+                  >
+                    {endingRound ? "Ending..." : "End Round"}
+                  </button>
+                  <button
+                    onClick={() => setShowEndRound(false)}
+                    className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Keep Playing
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
+
       {/* How to play — always visible */}
       {!isHost && (
         <Link
@@ -131,18 +191,24 @@ export default function EventDashboard() {
       {(() => {
         const rounds = !isHost && myTable ? myTableRounds : event.rounds;
         const lastRound = rounds[rounds.length - 1];
-        if (lastRound && lastRound.status === "completed" && roundDismissed !== lastRound.id) {
+        const isFinished = lastRound && (lastRound.status === "completed" || lastRound.status === "draw");
+        if (isFinished && roundDismissed !== lastRound.id) {
+          const isDraw = lastRound.status === "draw";
           const winners = lastRound.wins.map((w) => event.players.find((p) => p.id === w.winnerId)?.name).filter(Boolean);
-          const loser = event.players.find((p) =>
+          const losers = event.players.filter((p) =>
             lastRound.handsPlayed.includes(p.id) && !lastRound.wins.some((w) => w.winnerId === p.id)
           );
           return (
-            <div className="mahjong-card p-5 border-l-4 border-amber-500 text-center space-y-3">
-              <div className="text-3xl">🎊</div>
-              <p className="font-bold text-gray-800">Round {rounds.length} Complete!</p>
+            <div className={`mahjong-card p-5 border-l-4 ${isDraw ? "border-gray-400" : "border-amber-500"} text-center space-y-3`}>
+              <div className="text-3xl">{isDraw ? "🤝" : "🎊"}</div>
+              <p className="font-bold text-gray-800">
+                Round {rounds.length} {isDraw ? "— Draw (荒庄)" : "Complete!"}
+              </p>
               <p className="text-xs text-gray-500">
-                {winners.join(", ")} won
-                {loser && <> — <span className="text-red-500 font-bold">{loser.name}</span> didn&apos;t make it 😅</>}
+                {winners.length > 0
+                  ? <>{winners.join(", ")} won{losers.length > 0 && <> — {losers.map(l => l.name).join(", ")} didn&apos;t finish</>}</>
+                  : "No one won this round — tiles ran out!"
+                }
               </p>
               <button
                 onClick={() => setRoundDismissed(lastRound.id)}

@@ -718,6 +718,30 @@ function StepScoring() {
         </div>
       </div>
 
+      {/* Double win */}
+      <div className="mahjong-card p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">一炮双响 Double Win</p>
+        <p className="text-xs text-gray-500">
+          If one discard completes two players&apos; hands at the same time, the discarder pays <span className="font-bold">both</span> winners — full price each!
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <span className="text-lg">😎</span>
+          <span className="text-lg">😎</span>
+          <span className="text-xs text-red-600">←</span>
+          <span className="text-sm">💰💰</span>
+          <span className="text-xs text-red-600">from</span>
+          <span className="text-lg">😰</span>
+        </div>
+      </div>
+
+      {/* Draw / end round */}
+      <div className="mahjong-card p-4 space-y-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">荒庄 Draw</p>
+        <p className="text-xs text-gray-500">
+          If tiles run out before 3 players win, tap &quot;End Round&quot; to call it a draw. Points from any wins already recorded that round are kept.
+        </p>
+      </div>
+
       {/* Kong bonuses */}
       <div className="mahjong-card p-4 space-y-2">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kong Bonus (separate from winning)</p>
@@ -749,9 +773,10 @@ function StepApp() {
 
       <div className="space-y-3">
         {[
-          { icon: "📸", title: "Win? Snap a photo", desc: "AI reads your tiles and calculates the score" },
+          { icon: "🏆", title: "Win? Tap 我胡了!", desc: "Pick your tiles and the app calculates the score" },
           { icon: "🀄", title: "Kong? Tap 杠", desc: "Record kong bonuses as they happen" },
-          { icon: "📊", title: "Watch the leaderboard", desc: "Live scores across all tables" },
+          { icon: "🤝", title: "Draw? End the round", desc: "Tiles ran out — tap End Round to start fresh" },
+          { icon: "📊", title: "Watch the leaderboard", desc: "Live scores across your table" },
         ].map(({ icon, title, desc }) => (
           <div key={title} className="mahjong-card p-4 flex gap-4 items-center">
             <span className="text-3xl shrink-0">{icon}</span>
