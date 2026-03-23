@@ -283,20 +283,23 @@ export default function EventDashboard() {
             </button>
           )}
           {showLeaveConfirm && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
-              <p className="text-xs text-red-700">Leave <span className="font-bold">{myTable.name}</span>? Your scores will be kept but you won&apos;t be able to submit new wins.</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+              <p className="text-xs text-amber-800">Leave <span className="font-bold">{myTable.name}</span>? Your scores are kept — you can join another table with a new code.</p>
               <div className="flex gap-2">
                 <button
                   onClick={async () => {
-                    await fetch(`/api/events/${eventId}/players/${myPlayerId}?pin=player-leave`, { method: "DELETE" });
-                    localStorage.removeItem(`mahjong-player-${eventId}`);
-                    setMyPlayerId(null);
+                    await fetch(`/api/events/${eventId}/leave`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ playerId: myPlayerId }),
+                    });
                     setShowLeaveConfirm(false);
-                    window.location.href = "/";
+                    // Go to join page with event context so they can enter a new table code
+                    window.location.href = `/?rejoin=${eventId}&name=${encodeURIComponent(myPlayer?.name || "")}`;
                   }}
-                  className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+                  className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors"
                 >
-                  Leave
+                  Leave Table
                 </button>
                 <button
                   onClick={() => setShowLeaveConfirm(false)}

@@ -23,19 +23,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invalid table code" }, { status: 404 });
   }
 
-  // Check if already an active player with this name
-  const existing = event.players.find((p) => p.name.toLowerCase() === playerName.trim().toLowerCase());
-  if (existing) {
-    return NextResponse.json({ error: "Name already taken", player: existing }, { status: 409 });
-  }
-
   // Check table capacity (max 4)
   if (table.playerIds.length >= 4) {
     return NextResponse.json({ error: "Table is full (max 4 players)" }, { status: 400 });
   }
 
-  // Check if this is a returning player (same name in departedPlayers)
-  // Restore their original ID so scores carry over
+  // Check if player already exists in this event
+  const existing = event.players.find((p) => p.name.toLowerCase() === playerName.trim().toLowerCase());
+
+  if (existing) {
+    if (existing.tableId && existing.tableId !== "") {
+      // Already seated at a table — return them (client stores ID and redirects)
+      return NextResponse.json({ error: "Name already taken", player: existing }, { status: 409 });
+    }
+
+    // Player exists but left their table — reassign to new table
+    existing.tableId = table.id;
+    table.playerIds.push(existing.id);
+    await saveEvent(event);
+    return NextResponse.json({ player: existing, table: { id: table.id, name: table.name }, returning: true });
+  }
+
+  // Check if this is a returning player from departedPlayers
   const departedIdx = (event.departedPlayers || []).findIndex(
     (dp) => dp.name.toLowerCase() === playerName.trim().toLowerCase()
   );
@@ -43,12 +52,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let player;
   if (departedIdx >= 0) {
     const departed = event.departedPlayers![departedIdx];
-    // Restore with original ID — scores follow the player
     player = { id: departed.id, name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
-    // Remove from departed list
     event.departedPlayers!.splice(departedIdx, 1);
   } else {
-    // Brand new player
     player = { id: nanoid(6), name: playerName.trim(), tableId: table.id, joinedAt: Date.now() };
   }
 

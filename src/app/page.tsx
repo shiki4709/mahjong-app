@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-gray-400">Loading...</div>}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const router = useRouter();
-  const [mode, setMode] = useState<"home" | "create" | "join">("home");
+  const searchParams = useSearchParams();
+  const rejoinEventId = searchParams.get("rejoin");
+  const rejoinName = searchParams.get("name");
+
+  const [mode, setMode] = useState<"home" | "create" | "join">(rejoinEventId ? "join" : "home");
   const [eventName, setEventName] = useState("");
   const [baseScore, setBaseScore] = useState(1);
   const [tableCode, setTableCode] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(rejoinName || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,23 +74,27 @@ export default function Home() {
     setLoading(true);
     setError("");
 
-    // Try to find which event has this table code
-    // We'll use a lookup endpoint
-    const res = await fetch("/api/events/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tableCode: tableCode.trim().toUpperCase() }),
-    });
-    const data = await res.json();
+    let targetEventId = rejoinEventId;
 
-    if (!res.ok) {
-      setError(data.error || "Could not find table");
-      setLoading(false);
-      return;
+    if (!targetEventId) {
+      // Look up which event has this table code
+      const res = await fetch("/api/events/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableCode: tableCode.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Could not find table");
+        setLoading(false);
+        return;
+      }
+      targetEventId = data.eventId;
     }
 
     // Join the table
-    const joinRes = await fetch(`/api/events/${data.eventId}/join`, {
+    const joinRes = await fetch(`/api/events/${targetEventId}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tableCode: tableCode.trim().toUpperCase(), playerName: playerName.trim() }),
@@ -95,14 +111,14 @@ export default function Home() {
     // Only write to localStorage if no one else has claimed it yet
     // (avoids overwriting when multiple players share one browser)
     const player = joinData.player;
-    const existingLocal = localStorage.getItem(`mahjong-player-${data.eventId}`);
+    const existingLocal = localStorage.getItem(`mahjong-player-${targetEventId}`);
     if (!existingLocal) {
-      localStorage.setItem(`mahjong-player-${data.eventId}`, player.id);
-      localStorage.setItem(`mahjong-player-name-${data.eventId}`, player.name);
+      localStorage.setItem(`mahjong-player-${targetEventId}`, player.id);
+      localStorage.setItem(`mahjong-player-name-${targetEventId}`, player.name);
     }
 
     setLoading(false);
-    router.push(`/event/${data.eventId}?player=${player.id}`);
+    router.push(`/event/${targetEventId}?player=${player.id}`);
   }
 
   function generateTableCode(): string {
@@ -254,12 +270,22 @@ export default function Home() {
       {/* Player: Join table */}
       {mode === "join" && (
         <div className="space-y-4">
-          <button onClick={() => setMode("home")} className="text-sm text-gray-500 hover:text-gray-700">← Back</button>
+          {!rejoinEventId && (
+            <button onClick={() => setMode("home")} className="text-sm text-gray-500 hover:text-gray-700">← Back</button>
+          )}
+
+          {rejoinEventId && (
+            <div className="mahjong-card p-4 border-l-4 border-amber-500">
+              <p className="text-sm text-gray-600">
+                <span className="font-bold text-gray-800">Hi {rejoinName}!</span> Enter a new table code to rejoin. Your scores carry over.
+              </p>
+            </div>
+          )}
 
           <div className="mahjong-card p-5 space-y-4">
             <h3 className="font-bold text-lg flex items-center gap-2">
               <span className="w-1 h-5 bg-gray-800 rounded-full inline-block"></span>
-              Join a Table
+              {rejoinEventId ? "Join a New Table" : "Join a Table"}
             </h3>
             <p className="text-sm text-gray-500">Ask the host for your table code</p>
             <input
@@ -270,13 +296,19 @@ export default function Home() {
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-center font-mono text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-gray-800/20 focus:border-gray-800 transition-all bg-gray-50/50 uppercase"
               maxLength={4}
             />
-            <input
-              type="text"
-              placeholder="Your name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-800/20 focus:border-gray-800 transition-all bg-gray-50/50"
-            />
+            {rejoinEventId ? (
+              <div className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-100 text-gray-600">
+                {playerName}
+              </div>
+            ) : (
+              <input
+                type="text"
+                placeholder="Your name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-800/20 focus:border-gray-800 transition-all bg-gray-50/50"
+              />
+            )}
             <button
               onClick={joinTable}
               disabled={!tableCode.trim() || !playerName.trim() || loading}
